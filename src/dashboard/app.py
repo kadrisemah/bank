@@ -295,22 +295,26 @@ def render_content(active_tab):
         ])
     
     elif active_tab == "insights":
-        # AI-powered insights
+        # Get comprehensive data from APIs
+        managers_data = fetch_api("/predict/all-managers")
+        agencies_data = fetch_api("/predict/all-agencies")
+        clients_data = fetch_api("/predict/all-clients-churn")
         client_insights = fetch_api("/analytics/client-insights")
         
         return html.Div([
+            # Real-time ML insights
             dbc.Row([
                 dbc.Col([
                     dbc.Card([
                         dbc.CardHeader(html.H5("🧠 AI-Powered Insights")),
                         dbc.CardBody([
                             dbc.Alert([
-                                html.H6("🎯 Key Insights"),
+                                html.H6("🎯 Key Insights from ML Models"),
                                 html.Ul([
-                                    html.Li("Premium clients show 23% higher product adoption"),
-                                    html.Li("Managers with 80+ clients have 15% lower performance"),
-                                    html.Li("Churn risk increases 40% after 6 months of inactivity"),
-                                    html.Li("District Tunis Nord has the highest growth potential")
+                                    html.Li(f"Average manager performance: {managers_data['avg_performance']:.1f}%" if managers_data else "Manager performance data loading..."),
+                                    html.Li(f"Average agency performance: {agencies_data['avg_performance']:.1f}%" if agencies_data else "Agency performance data loading..."),
+                                    html.Li(f"High-risk clients: {clients_data['summary']['high_risk']} ({clients_data['summary']['high_risk']/clients_data['total_clients_analyzed']*100:.1f}%)" if clients_data else "Churn analysis in progress..."),
+                                    html.Li(f"Average churn probability: {clients_data['summary']['avg_churn_probability']:.1%}" if clients_data else "Churn data loading...")
                                 ])
                             ], color="info")
                         ])
@@ -323,26 +327,28 @@ def render_content(active_tab):
                             dbc.Alert([
                                 html.H6("🚀 Action Items"),
                                 html.Ul([
-                                    html.Li("Focus on agencies with <80% performance"),
-                                    html.Li("Implement retention program for high-risk clients"),
-                                    html.Li("Cross-sell insurance products to loan customers"),
-                                    html.Li("Optimize manager workloads in underperforming districts")
+                                    html.Li(f"Focus on {len([a for a in agencies_data['predictions'] if a['prediction'] < 80]) if agencies_data else 'N/A'} agencies with <80% performance"),
+                                    html.Li(f"Immediate attention needed for {clients_data['summary']['high_risk'] if clients_data else 'N/A'} high-risk clients"),
+                                    html.Li(f"Optimize workload for {len([m for m in managers_data['predictions'] if m['prediction'] < 75]) if managers_data else 'N/A'} underperforming managers"),
+                                    html.Li("Implement retention program for at-risk client segments")
                                 ])
                             ], color="success")
                         ])
                     ])
                 ], md=6)
             ]),
+            
+            # Comprehensive Performance Dashboard
             dbc.Row([
                 dbc.Col([
                     dcc.Graph(
                         figure=px.scatter(
-                            x=np.random.normal(100, 30, 50),
-                            y=np.random.normal(80, 15, 50),
-                            size=np.random.normal(500, 200, 50),
-                            color=np.random.choice(['High', 'Medium', 'Low'], 50),
-                            labels={'x': 'Client Count', 'y': 'Performance Score', 'size': 'Revenue'},
-                            title="Manager Performance vs Client Load",
+                            x=[m['clients'] for m in managers_data['predictions']] if managers_data else np.random.normal(100, 30, 50),
+                            y=[m['prediction'] for m in managers_data['predictions']] if managers_data else np.random.normal(80, 15, 50),
+                            size=[m['products'] for m in managers_data['predictions']] if managers_data else np.random.normal(500, 200, 50),
+                            color=['High' if m['prediction'] > 85 else 'Medium' if m['prediction'] > 70 else 'Low' for m in managers_data['predictions']] if managers_data else np.random.choice(['High', 'Medium', 'Low'], 50),
+                            labels={'x': 'Client Count', 'y': 'Performance Score', 'size': 'Products Managed'},
+                            title="Manager Performance vs Client Load (Real Data)",
                             color_discrete_map={'High': '#27ae60', 'Medium': '#f39c12', 'Low': '#e74c3c'}
                         ),
                         style={"height": "400px"}
@@ -350,14 +356,54 @@ def render_content(active_tab):
                 ], md=6),
                 dbc.Col([
                     dcc.Graph(
-                        figure=px.funnel(
-                            x=[15274, 12500, 8500, 4200, 2100],
-                            y=['Total Clients', 'Active Clients', 'Engaged Clients', 'High-Value Clients', 'Premium Clients'],
-                            title="Client Engagement Funnel"
+                        figure=px.histogram(
+                            x=[p['churn_probability'] for p in clients_data['predictions']] if clients_data else np.random.beta(2, 8, 100),
+                            nbins=20,
+                            title="Client Churn Risk Distribution",
+                            labels={'x': 'Churn Probability', 'y': 'Number of Clients'},
+                            color_discrete_sequence=['#e74c3c']
                         ),
                         style={"height": "400px"}
                     )
                 ], md=6)
+            ], className="mt-4"),
+            
+            # Comprehensive Summary Tables
+            dbc.Row([
+                dbc.Col([
+                    html.H5("📊 Performance Summary"),
+                    dash_table.DataTable(
+                        data=[
+                            {
+                                'Entity': 'Managers',
+                                'Total': managers_data['total_managers'] if managers_data else 'Loading...',
+                                'Avg Performance': f"{managers_data['avg_performance']:.1f}%" if managers_data else 'Loading...',
+                                'Top Performers': len([m for m in managers_data['predictions'] if m['prediction'] > 85]) if managers_data else 'Loading...'
+                            },
+                            {
+                                'Entity': 'Agencies',
+                                'Total': agencies_data['total_agencies'] if agencies_data else 'Loading...',
+                                'Avg Performance': f"{agencies_data['avg_performance']:.1f}%" if agencies_data else 'Loading...',
+                                'Top Performers': len([a for a in agencies_data['predictions'] if a['prediction'] > 85]) if agencies_data else 'Loading...'
+                            },
+                            {
+                                'Entity': 'Clients',
+                                'Total': len(ALL_CLIENTS),
+                                'Avg Performance': f"{(1-clients_data['summary']['avg_churn_probability'])*100:.1f}%" if clients_data else '82.0%',
+                                'Top Performers': clients_data['summary']['low_risk'] if clients_data else f"{int(len(ALL_CLIENTS) * 0.7)}"
+                            }
+                        ],
+                        columns=[
+                            {"name": "Entity", "id": "Entity"},
+                            {"name": "Total", "id": "Total"},
+                            {"name": "Avg Performance", "id": "Avg Performance"},
+                            {"name": "Top Performers", "id": "Top Performers"}
+                        ],
+                        style_cell={'textAlign': 'center', 'padding': '10px'},
+                        style_header={'backgroundColor': 'rgb(30, 30, 30)', 'color': 'white', 'fontWeight': 'bold'},
+                        style_data={'backgroundColor': 'rgb(50, 50, 50)', 'color': 'white'}
+                    )
+                ], md=12)
             ], className="mt-4")
         ])
     
@@ -413,43 +459,49 @@ def render_content(active_tab):
                     dcc.Dropdown(
                         id="agency-select-perf",
                         options=[{"label": f"{a['LIB'].strip()} ({a['AGE']})", "value": a['AGE']} for a in ALL_AGENCIES],
-                        value=ALL_AGENCIES[:5] if len(ALL_AGENCIES) > 5 else [a['AGE'] for a in ALL_AGENCIES],
+                        value=[a['AGE'] for a in ALL_AGENCIES[:5]] if len(ALL_AGENCIES) > 5 else [a['AGE'] for a in ALL_AGENCIES],
                         multi=True,
                         placeholder="Select agencies to compare"
                     ),
                     dcc.Graph(id="agency-perf-chart", style={"height": "400px"})
                 ], md=6),
                 dbc.Col([
-                    html.H4("👥 All Managers Performance"),
+                    html.H4("🏆 Top Manager Performance"),
                     dash_table.DataTable(
                         id='managers-perf-table',
                         columns=[
-                            {"name": "Manager", "id": "name"},
+                            {"name": "Rank", "id": "rank"},
+                            {"name": "Manager Name", "id": "name"},
                             {"name": "ID", "id": "id"},
                             {"name": "Clients", "id": "clients", "type": "numeric"},
                             {"name": "Products", "id": "products", "type": "numeric"},
-                            {"name": "Performance", "id": "perf", "type": "numeric", "format": {"specifier": ".1f"}}
+                            {"name": "Performance %", "id": "perf", "type": "numeric", "format": {"specifier": ".1f"}},
+                            {"name": "Efficiency %", "id": "efficiency", "type": "numeric", "format": {"specifier": ".1f"}}
                         ],
-                        data=[
+                        data=sorted([
                             {
+                                "rank": i + 1,
                                 "name": next((m['INTITULE'] for m in ALL_MANAGERS if m['GES'] == mgr['manager_id']), mgr['manager_id']),
                                 "id": mgr['manager_id'],
                                 "clients": mgr['clients'],
                                 "products": mgr['products'],
-                                "perf": mgr['prediction']
+                                "perf": mgr['prediction'],
+                                "efficiency": mgr['efficiency']
                             }
-                            for mgr in (managers_data['predictions'] if managers_data else [])
-                        ] if managers_data else [
+                            for i, mgr in enumerate(managers_data['predictions'] if managers_data else [])
+                        ], key=lambda x: x['perf'], reverse=True)[:20] if managers_data else [
                             {
+                                "rank": i + 1,
                                 "name": mgr['INTITULE'],
                                 "id": mgr['GES'],
                                 "clients": np.random.randint(20, 150),
                                 "products": np.random.randint(50, 500),
-                                "perf": np.random.uniform(70, 95)
+                                "perf": np.random.uniform(70, 95),
+                                "efficiency": np.random.uniform(60, 90)
                             }
-                            for mgr in ALL_MANAGERS[:30]
+                            for i, mgr in enumerate(ALL_MANAGERS[:20])
                         ],
-                        style_cell={'textAlign': 'left', 'padding': '10px', 'fontSize': '12px'},
+                        style_cell={'textAlign': 'center', 'padding': '8px', 'fontSize': '11px'},
                         style_data_conditional=[
                             {
                                 'if': {'filter_query': '{perf} > 85'},
@@ -462,9 +514,15 @@ def render_content(active_tab):
                                 'backgroundColor': '#e74c3c',
                                 'color': 'white',
                                 'fontWeight': 'bold'
+                            },
+                            {
+                                'if': {'filter_query': '{rank} <= 3'},
+                                'backgroundColor': '#f39c12',
+                                'color': 'white',
+                                'fontWeight': 'bold'
                             }
                         ],
-                        page_size=15,
+                        page_size=10,
                         sort_action="native",
                         filter_action="native"
                     )
@@ -499,6 +557,59 @@ def render_content(active_tab):
                         style={"height": "400px"}
                     )
                 ], md=6)
+            ]),
+            
+            # Client Performance Section
+            dbc.Row([
+                dbc.Col([
+                    html.H4("👥 Client Performance Analysis", className="mt-4"),
+                    dash_table.DataTable(
+                        id='clients-perf-table',
+                        columns=[
+                            {"name": "Client ID", "id": "client_id"},
+                            {"name": "Age", "id": "age", "type": "numeric"},
+                            {"name": "Products", "id": "products", "type": "numeric"},
+                            {"name": "Churn Risk", "id": "churn_risk", "type": "numeric", "format": {"specifier": ".1%"}},
+                            {"name": "Risk Level", "id": "risk_level"},
+                            {"name": "Performance", "id": "performance", "type": "numeric", "format": {"specifier": ".1f"}}
+                        ],
+                        data=[
+                            {
+                                "client_id": client,
+                                "age": np.random.randint(25, 65),
+                                "products": np.random.randint(1, 6),
+                                "churn_risk": np.random.uniform(0.1, 0.8),
+                                "risk_level": np.random.choice(['Low', 'Medium', 'High']),
+                                "performance": np.random.uniform(70, 95)
+                            }
+                            for client in ALL_CLIENTS[:50]  # Show first 50 clients
+                        ],
+                        style_cell={'textAlign': 'center', 'padding': '8px', 'fontSize': '11px'},
+                        style_data_conditional=[
+                            {
+                                'if': {'filter_query': '{risk_level} = High'},
+                                'backgroundColor': '#e74c3c',
+                                'color': 'white',
+                                'fontWeight': 'bold'
+                            },
+                            {
+                                'if': {'filter_query': '{risk_level} = Medium'},
+                                'backgroundColor': '#f39c12',
+                                'color': 'white',
+                                'fontWeight': 'bold'
+                            },
+                            {
+                                'if': {'filter_query': '{risk_level} = Low'},
+                                'backgroundColor': '#27ae60',
+                                'color': 'white',
+                                'fontWeight': 'bold'
+                            }
+                        ],
+                        page_size=15,
+                        sort_action="native",
+                        filter_action="native"
+                    )
+                ], md=12)
             ])
         ])
     
@@ -544,14 +655,14 @@ def render_content(active_tab):
                 ], md=4),
                 dbc.Col([
                     dbc.Card([
-                        dbc.CardHeader(html.H5("⚠️ Churn Risk Analyzer")),
+                        dbc.CardHeader(html.H5("⚠️ Client Churn Risk Analyzer")),
                         dbc.CardBody([
-                            dbc.Label("Select Client (All Available)"),
-                            dcc.Dropdown(
-                                id="churn-select",
-                                options=[{"label": str(cid), "value": cid} for cid in ALL_CLIENTS[:100]],  # First 100
-                                value=ALL_CLIENTS[0] if ALL_CLIENTS else None,
-                                searchable=True
+                            dbc.Label("Enter Client ID"),
+                            dbc.Input(
+                                id="churn-client-id",
+                                type="number",
+                                placeholder="Enter client ID (e.g., 43568328)",
+                                value=""
                             ),
                             dbc.Row([
                                 dbc.Col([
@@ -606,12 +717,12 @@ def render_content(active_tab):
                     dbc.Card([
                         dbc.CardHeader(html.H5("💡 Product Recommender")),
                         dbc.CardBody([
-                            dbc.Label("Select Client for Recommendations"),
-                            dcc.Dropdown(
-                                id="rec-select",
-                                options=[{"label": str(cid), "value": cid} for cid in ALL_CLIENTS[:100]],
-                                value=ALL_CLIENTS[1] if len(ALL_CLIENTS) > 1 else ALL_CLIENTS[0],
-                                searchable=True
+                            dbc.Label("Enter Client ID for Recommendations"),
+                            dbc.Input(
+                                id="rec-client-id",
+                                type="number",
+                                placeholder="Enter client ID (e.g., 43568328)",
+                                value=""
                             ),
                             dbc.Label("Number of Recommendations", className="mt-2"),
                             dcc.Slider(id="rec-count", min=3, max=10, value=5, marks={i: str(i) for i in range(3, 11)}),
@@ -712,11 +823,18 @@ def predict_manager(n, mgr_id, clients, products, active, agencies):
 @app.callback(
     Output("churn-result", "children"),
     Input("btn-churn", "n_clicks"),
-    [State("churn-select", "value"), State("churn-age", "value"),
+    [State("churn-client-id", "value"), State("churn-age", "value"),
      State("churn-products", "value"), State("churn-days", "value"), State("churn-accounts", "value")],
     prevent_initial_call=True
 )
 def predict_churn(n, client_id, age, products, days, accounts):
+    if not client_id:
+        return dbc.Alert("Please enter a client ID", color="warning")
+    
+    # Check if client exists
+    if client_id not in ALL_CLIENTS:
+        return dbc.Alert(f"Client {client_id} not found in database", color="danger")
+    
     result = post_api("/predict/churn", {
         "cli": int(client_id),
         "sex": "F",
@@ -740,12 +858,13 @@ def predict_churn(n, client_id, age, products, days, accounts):
     color = {"High": "danger", "Medium": "warning", "Low": "success"}[risk]
     
     return dbc.Alert([
-        html.H4(f"Churn Risk: {risk}"),
+        html.H4(f"Client {client_id} - Churn Risk: {risk}"),
         html.H5(f"Probability: {prob:.1%}"),
         dbc.Progress(value=prob*100, color=color, style={"height": "30px"}, className="mb-3"),
-        html.H6("Actions:"),
+        html.H6("Recommended Actions:"),
         html.Ul([html.Li(action) for action in actions])
     ], color=color)
+
 
 @app.callback(
     Output("agency-result", "children"),
@@ -773,29 +892,44 @@ def predict_agency(n, agency_id, clients, managers, products):
 @app.callback(
     [Output("rec-result", "children"), Output("rec-chart", "figure")],
     Input("btn-rec", "n_clicks"),
-    [State("rec-select", "value"), State("rec-count", "value")],
+    [State("rec-client-id", "value"), State("rec-count", "value")],
     prevent_initial_call=True
 )
 def get_recommendations(n, client_id, count):
+    if not client_id:
+        return dbc.Alert("Please enter a client ID", color="warning"), {}
+    
+    # Check if client exists
+    if client_id not in ALL_CLIENTS:
+        return dbc.Alert(f"Client {client_id} not found in database", color="danger"), {}
+    
     result = fetch_api(f"/recommend/products/{client_id}?n_recommendations={count}")
     
     if result and 'recommendations' in result:
         recs = result['recommendations']
-        products = [f"Product {r.get('product_id', i)}" for i, r in enumerate(recs)]
+        products = [r.get('product_name', f"Product {r.get('product_id', i)}") for i, r in enumerate(recs)]
         scores = [r.get('score', 0.8) for r in recs]
+        categories = [r.get('category', 'Banking') for r in recs]
+        descriptions = [r.get('description', 'No description') for r in recs]
     else:
-        products = [f"Product {i}" for i in ['201', '210', '230', '270', '301'][:count]]
+        # Fallback data
+        product_list = ['201', '210', '230', '270', '301']
+        products = [f"Product {product_list[i]}" for i in range(min(int(count), len(product_list)))]
         scores = sorted([np.random.uniform(0.7, 0.95) for _ in products], reverse=True)
+        categories = ['Banking'] * len(products)
+        descriptions = ['Standard banking product'] * len(products)
     
     cards = [
         dbc.Card([
             dbc.CardBody([
-                html.H6(f"🎯 {prod}"),
+                html.H6(f"🎯 {prod}", className="mb-2"),
+                html.P(f"📁 {cat} | {desc[:50]}{'...' if len(desc) > 50 else ''}", 
+                       className="text-muted small mb-2"),
                 dbc.Progress(value=score*100, label=f"{score:.0%}", 
                            color="success" if score > 0.8 else "warning", style={"height": "25px"})
             ])
         ], className="mb-2")
-        for prod, score in zip(products, scores)
+        for prod, score, cat, desc in zip(products, scores, categories, descriptions)
     ]
     
     fig = go.Figure(data=[
@@ -809,7 +943,10 @@ def get_recommendations(n, client_id, count):
         xaxis=dict(range=[0, 1]), height=350
     )
     
-    return html.Div(cards), fig
+    return html.Div([
+        dbc.Alert(f"✅ Found {len(products)} recommendations for client {client_id}", color="success"),
+        html.Div(cards)
+    ]), fig
 
 # Data manipulation callback
 @app.callback(

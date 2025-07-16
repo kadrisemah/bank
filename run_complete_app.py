@@ -20,7 +20,7 @@ def start_api():
     from src.api.app import app
     import uvicorn
     
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+    uvicorn.run(app, host="0.0.0.0", port=8001, log_level="info")
 
 def start_dashboard():
     """Start the Dash dashboard"""
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     
     try:
         api_process.start()
-        print("✅ API server started on http://localhost:8000")
+        print("✅ API server started on http://localhost:8001")
         
         # Wait a bit for API to start
         time.sleep(3)
@@ -59,7 +59,7 @@ if __name__ == "__main__":
         print("✅ Dashboard started on http://localhost:8050")
         
         print("\n🌟 Application is ready!")
-        print("- API Documentation: http://localhost:8000/docs")
+        print("- API Documentation: http://localhost:8001/docs")
         print("- Dashboard: http://localhost:8050")
         print("\nPress Ctrl+C to stop all services")
         
