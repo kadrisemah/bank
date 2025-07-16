@@ -13,9 +13,14 @@ import os
 import sys
 
 # Add parent directory to path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from models.ml_models import PerformancePredictor, ProductRecommender, ChurnPredictor
+try:
+    from src.models.ml_models import PerformancePredictor, ProductRecommender, ChurnPredictor
+    ML_MODELS_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"ML models import failed: {e}")
+    ML_MODELS_AVAILABLE = False
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -90,6 +95,12 @@ models = {}
 def load_models():
     """Load pre-trained models"""
     global models
+    
+    if not ML_MODELS_AVAILABLE:
+        logger.error("ML models not available - cannot load models")
+        models = {}
+        return
+        
     try:
         model_path = "data/models"
         
@@ -97,31 +108,32 @@ def load_models():
         manager_predictor = PerformancePredictor()
         manager_predictor.load_model(f"{model_path}/manager_performance")
         models['manager_performance'] = manager_predictor
+        logger.info("✅ Manager performance model loaded")
         
         agency_predictor = PerformancePredictor()
         agency_predictor.load_model(f"{model_path}/agency_performance")
         models['agency_performance'] = agency_predictor
+        logger.info("✅ Agency performance model loaded")
         
         # Load product recommender
         recommender = ProductRecommender()
         recommender.load_model(f"{model_path}/product_recommender")
         models['product_recommender'] = recommender
+        logger.info("✅ Product recommender model loaded")
         
         # Load churn predictor
         churn_predictor = ChurnPredictor()
         churn_predictor.load_model(f"{model_path}/churn_predictor")
         models['churn_predictor'] = churn_predictor
+        logger.info("✅ Churn predictor model loaded")
         
-        logger.info("All models loaded successfully")
+        logger.info("🎉 All models loaded successfully")
+        
     except Exception as e:
-        logger.error(f"Error loading models: {str(e)}")
-        # Initialize empty models for demo
-        models = {
-            'manager_performance': PerformancePredictor(),
-            'agency_performance': PerformancePredictor(),
-            'product_recommender': ProductRecommender(),
-            'churn_predictor': ChurnPredictor()
-        }
+        logger.error(f"❌ Error loading models: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        models = {}
 
 # Load models on startup
 @app.on_event("startup")
@@ -146,12 +158,13 @@ async def predict_manager_performance(features: ManagerFeatures):
         df['products_per_client'] = df['total_products_managed'] / df['total_clients'] if df['total_clients'].iloc[0] > 0 else 0
         df['active_products_ratio'] = df['active_products_managed'] / df['total_products_managed'] if df['total_products_managed'].iloc[0] > 0 else 0
         
-        # Make prediction
-        if 'manager_performance' in models and hasattr(models['manager_performance'], 'model') and models['manager_performance'].model:
+        # Make prediction using trained model
+        if 'manager_performance' in models and models['manager_performance'] is not None:
             prediction = models['manager_performance'].predict(df)[0]
+            logger.info(f"✅ Manager performance prediction using trained model: {prediction:.2f}")
         else:
-            # Simulate prediction
-            prediction = np.random.uniform(60, 95)
+            logger.error("❌ No trained manager performance model available")
+            raise HTTPException(status_code=503, detail="Manager performance model not available")
         
         return PredictionResponse(
             prediction=float(prediction),
@@ -175,12 +188,13 @@ async def predict_agency_performance(features: AgencyFeatures):
         df['active_products_ratio'] = df['active_products'] / df['total_products'] if df['total_products'].iloc[0] > 0 else 0
         df['clients_per_manager'] = df['total_clients'] / df['total_managers'] if df['total_managers'].iloc[0] > 0 else 0
         
-        # Make prediction
-        if 'agency_performance' in models and hasattr(models['agency_performance'], 'model') and models['agency_performance'].model:
+        # Make prediction using trained model
+        if 'agency_performance' in models and models['agency_performance'] is not None:
             prediction = models['agency_performance'].predict(df)[0]
+            logger.info(f"✅ Agency performance prediction using trained model: {prediction:.2f}")
         else:
-            # Simulate prediction
-            prediction = np.random.uniform(70, 90)
+            logger.error("❌ No trained agency performance model available")
+            raise HTTPException(status_code=503, detail="Agency performance model not available")
         
         return PredictionResponse(
             prediction=float(prediction),
@@ -196,57 +210,87 @@ async def predict_agency_performance(features: AgencyFeatures):
 async def recommend_products(client_id: int, n_recommendations: int = 5):
     """Get product recommendations for a client"""
     try:
-        # Check if client exists in our database
+        # Check if client exists in database
         try:
-            clients_df = pd.read_csv('data/processed/client_features.csv')
-            raw_clients = pd.read_excel('data/raw/Clients_DOU_replaced_DDMMYYYY.xlsx')
-            client_exists = client_id in clients_df['CLI'].values if 'CLI' in clients_df.columns else client_id in raw_clients['CLI'].values
+            clients_df = pd.read_excel('data/raw/Clients_DOU_replaced_DDMMYYYY.xlsx')
+            client_exists = client_id in clients_df['CLI'].values
         except:
-            # If we can't check, assume client exists for demo
-            client_exists = True
+            client_exists = False
         
         if not client_exists:
-            raise HTTPException(status_code=404, detail=f"Client {client_id} not found in database")
+            raise HTTPException(status_code=404, detail=f"Client {client_id} not found")
         
-        # Product mapping with real names
-        product_mapping = {
-            '201': {'name': 'Savings Account Premium', 'category': 'Savings', 'description': 'High-yield savings account with premium benefits'},
-            '210': {'name': 'Personal Loan', 'category': 'Loans', 'description': 'Flexible personal loan with competitive rates'},
-            '230': {'name': 'Auto Insurance', 'category': 'Insurance', 'description': 'Comprehensive auto insurance coverage'},
-            '270': {'name': 'Investment Portfolio', 'category': 'Investment', 'description': 'Diversified investment portfolio management'},
-            '301': {'name': 'Credit Card Gold', 'category': 'Credit', 'description': 'Premium credit card with rewards program'},
-            '145': {'name': 'Home Mortgage', 'category': 'Loans', 'description': 'Fixed-rate home mortgage loan'},
-            '189': {'name': 'Life Insurance', 'category': 'Insurance', 'description': 'Term life insurance policy'},
-            '234': {'name': 'Business Account', 'category': 'Business', 'description': 'Professional business banking account'},
-            '156': {'name': 'Mobile Banking Plus', 'category': 'Digital', 'description': 'Enhanced mobile banking services'},
-            '278': {'name': 'Retirement Plan', 'category': 'Investment', 'description': 'Long-term retirement savings plan'}
-        }
+        logger.info(f"Generating recommendations for client {client_id}")
         
-        if 'product_recommender' in models and hasattr(models['product_recommender'], 'user_item_matrix') and models['product_recommender'].user_item_matrix is not None:
-            recommendations = models['product_recommender'].get_recommendations(client_id, n_recommendations)
+        # Use trained ML model for recommendations
+        if 'product_recommender' in models and models['product_recommender'] is not None:
+            try:
+                # Get recommendations from trained model
+                raw_recommendations = models['product_recommender'].get_recommendations(client_id, n_recommendations)
+                
+                # Product mapping for names and descriptions
+                product_mapping = {
+                    '201': {'name': 'Savings Account Premium', 'category': 'Savings', 'description': 'High-yield savings account with premium benefits'},
+                    '210': {'name': 'Personal Loan', 'category': 'Loans', 'description': 'Flexible personal loan with competitive rates'},
+                    '230': {'name': 'Auto Insurance', 'category': 'Insurance', 'description': 'Comprehensive auto insurance coverage'},
+                    '270': {'name': 'Investment Portfolio', 'category': 'Investment', 'description': 'Diversified investment portfolio management'},
+                    '301': {'name': 'Credit Card Gold', 'category': 'Credit', 'description': 'Premium credit card with rewards program'},
+                    '145': {'name': 'Home Mortgage', 'category': 'Loans', 'description': 'Fixed-rate home mortgage loan'},
+                    '189': {'name': 'Life Insurance', 'category': 'Insurance', 'description': 'Term life insurance policy'},
+                    '234': {'name': 'Business Account', 'category': 'Business', 'description': 'Professional business banking account'},
+                    '156': {'name': 'Mobile Banking Plus', 'category': 'Digital', 'description': 'Enhanced mobile banking services'},
+                    '278': {'name': 'Retirement Plan', 'category': 'Investment', 'description': 'Long-term retirement savings plan'},
+                    '221': {'name': 'Current Account', 'category': 'Banking', 'description': 'Standard current account'},
+                    '222': {'name': 'Business Current Account', 'category': 'Business', 'description': 'Business current account'},
+                    '665': {'name': 'Investment Fund', 'category': 'Investment', 'description': 'Investment fund portfolio'}
+                }
+                
+                # Convert ML model results to API format - Convert counts to probabilities
+                recommendations = []
+                
+                # Get all raw scores to normalize properly
+                all_scores = [float(rec['score']) for rec in raw_recommendations]
+                total_score = sum(all_scores) if all_scores else 1
+                
+                for rec in raw_recommendations:
+                    product_id = str(rec['product_id']).strip()
+                    
+                    # Get product info
+                    product_info = product_mapping.get(product_id, {
+                        'name': f'Product {product_id}',
+                        'category': 'Banking',
+                        'description': 'Banking product'
+                    })
+                    
+                    # Convert count to probability (0-1 range)
+                    raw_score = float(rec['score'])
+                    probability_score = raw_score / total_score if total_score > 0 else 0
+                    
+                    recommendations.append({
+                        'product_id': product_id,
+                        'score': probability_score,  # Now in 0-1 range
+                        'product_name': product_info['name'],
+                        'category': product_info['category'],
+                        'description': product_info['description']
+                    })
+                
+                logger.info(f"Generated {len(recommendations)} recommendations using trained ML model")
+                
+            except Exception as e:
+                logger.error(f"Error using trained ML model: {str(e)}")
+                recommendations = []
         else:
-            # Simulate recommendations with meaningful data
-            product_ids = list(product_mapping.keys())
-            selected_products = np.random.choice(product_ids, min(n_recommendations, len(product_ids)), replace=False)
-            
+            logger.error("No trained product recommender model available")
             recommendations = []
-            for pid in selected_products:
-                product_info = product_mapping[pid]
-                recommendations.append({
-                    'product_id': pid,
-                    'score': np.random.uniform(0.7, 0.95),
-                    'product_name': product_info['name'],
-                    'category': product_info['category'],
-                    'description': product_info['description']
-                })
-            
-            # Sort by score
-            recommendations.sort(key=lambda x: x['score'], reverse=True)
+        
+        logger.info(f"Generated {len(recommendations)} recommendations for client {client_id}")
         
         return RecommendationResponse(
             client_id=client_id,
             recommendations=recommendations
         )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error in product recommendation: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -269,12 +313,13 @@ async def predict_churn(features: ClientFeatures):
         df['Segment Client'] = 'Standard'  # Placeholder
         df['District'] = features.district or 'Unknown'
         
-        # Make prediction
-        if 'churn_predictor' in models and hasattr(models['churn_predictor'], 'model') and models['churn_predictor'].model:
+        # Make prediction using trained model
+        if 'churn_predictor' in models and models['churn_predictor'] is not None:
             churn_prob = models['churn_predictor'].predict_proba(df)[0]
+            logger.info(f"✅ Churn prediction using trained model: {churn_prob:.3f}")
         else:
-            # Simulate prediction
-            churn_prob = np.random.uniform(0.1, 0.9)
+            logger.error("❌ No trained churn predictor model available")
+            raise HTTPException(status_code=503, detail="Churn prediction model not available")
         
         # Determine risk level
         if churn_prob < 0.3:
@@ -321,10 +366,10 @@ async def predict_all_managers():
             df['products_per_client'] = df['total_products_managed'] / df['total_clients'] if df['total_clients'].iloc[0] > 0 else 0
             df['active_products_ratio'] = df['active_products_managed'] / df['total_products_managed'] if df['total_products_managed'].iloc[0] > 0 else 0
             
-            if 'manager_performance' in models and hasattr(models['manager_performance'], 'model') and models['manager_performance'].model:
+            if 'manager_performance' in models and models['manager_performance'] is not None:
                 prediction = models['manager_performance'].predict(df)[0]
             else:
-                prediction = np.random.uniform(60, 95)
+                raise HTTPException(status_code=503, detail="Manager performance model not available")
             
             predictions.append({
                 'manager_id': row['GES'],
@@ -369,10 +414,10 @@ async def predict_all_agencies():
             df['active_products_ratio'] = df['active_products'] / df['total_products'] if df['total_products'].iloc[0] > 0 else 0
             df['clients_per_manager'] = df['total_clients'] / df['total_managers'] if df['total_managers'].iloc[0] > 0 else 0
             
-            if 'agency_performance' in models and hasattr(models['agency_performance'], 'model') and models['agency_performance'].model:
+            if 'agency_performance' in models and models['agency_performance'] is not None:
                 prediction = models['agency_performance'].predict(df)[0]
             else:
-                prediction = np.random.uniform(70, 90)
+                raise HTTPException(status_code=503, detail="Agency performance model not available")
             
             predictions.append({
                 'agency_id': row['AGE'],
@@ -441,11 +486,11 @@ async def predict_all_clients_churn():
             df['Segment Client'] = 'Standard'
             df['District'] = features['district']
             
-            # Make prediction
-            if 'churn_predictor' in models and hasattr(models['churn_predictor'], 'model') and models['churn_predictor'].model:
+            # Make prediction using trained model
+            if 'churn_predictor' in models and models['churn_predictor'] is not None:
                 churn_prob = models['churn_predictor'].predict_proba(df)[0]
             else:
-                churn_prob = np.random.uniform(0.1, 0.9)
+                raise HTTPException(status_code=503, detail="Churn prediction model not available")
             
             # Determine risk level
             if churn_prob < 0.3:

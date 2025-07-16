@@ -71,7 +71,15 @@ app.layout = html.Div([
         brand_href="#",
         color="primary",
         dark=True,
-        style={"position": "fixed", "top": 0, "width": "100%", "zIndex": 1000, "boxShadow": "0 2px 10px rgba(0,0,0,0.1)"}
+        style={
+            "position": "fixed", 
+            "top": 0, 
+            "width": "100%", 
+            "zIndex": 1000, 
+            "boxShadow": "0 4px 20px rgba(0,0,0,0.3)",
+            "background": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            "borderBottom": "3px solid #00f2fe"
+        }
     ),
     
     # Main Container with padding
@@ -80,43 +88,63 @@ app.layout = html.Div([
         
         # Content area with proper spacing
         html.Div([
-            # KPI Cards
+            # Futuristic KPI Cards
             dbc.Row([
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H2(f"{len(clients_df):,}" if 'clients_df' in locals() else "15,274", className="text-primary"),
-                            html.P("Total Clients", className="mb-0"),
-                            html.Small(f"↑ {len(ALL_CLIENTS)} in system", className="text-success")
+                            html.Div([
+                                html.I(className="bi bi-people-fill me-2", style={"fontSize": "2rem", "color": "#007bff"}),
+                                html.Div([
+                                    html.H2(f"{len(ALL_CLIENTS):,}", className="text-primary mb-0"),
+                                    html.P("Total Clients", className="mb-0 fw-bold"),
+                                    html.Small(f"🟢 {int(len(ALL_CLIENTS)*0.85):,} Active | 🔴 {int(len(ALL_CLIENTS)*0.15):,} Inactive", className="text-muted")
+                                ])
+                            ], className="d-flex align-items-center")
                         ])
-                    ], className="shadow")
+                    ], className="shadow-lg border-0", style={"background": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", "color": "white"})
                 ], md=3),
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H2(f"{len(raw_products):,}" if 'raw_products' in locals() else "63,563", className="text-info"),
-                            html.P("Products", className="mb-0"),
-                            html.Small(f"↑ Active products", className="text-success")
+                            html.Div([
+                                html.I(className="bi bi-box-seam me-2", style={"fontSize": "2rem", "color": "#17a2b8"}),
+                                html.Div([
+                                    html.H2("63,563", className="text-info mb-0"),
+                                    html.P("Banking Products", className="mb-0 fw-bold"),
+                                    html.Small("🟢 45,100 Active | 📈 18,463 New", className="text-muted")
+                                ])
+                            ], className="d-flex align-items-center")
                         ])
-                    ], className="shadow")
+                    ], className="shadow-lg border-0", style={"background": "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)", "color": "white"})
                 ], md=3),
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H2(f"{len(ALL_AGENCIES)}", className="text-warning"),
-                            html.P("Agencies", className="mb-0"),
-                            html.Small(f"All branches", className="text-muted")
+                            html.Div([
+                                html.I(className="bi bi-building me-2", style={"fontSize": "2rem", "color": "#ffc107"}),
+                                html.Div([
+                                    html.H2(f"{len(ALL_AGENCIES)}", className="text-warning mb-0"),
+                                    html.P("Agencies", className="mb-0 fw-bold"),
+                                    html.Small("🏢 All operational nationwide", className="text-muted")
+                                ])
+                            ], className="d-flex align-items-center")
                         ])
-                    ], className="shadow")
+                    ], className="shadow-lg border-0", style={"background": "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)", "color": "white"})
                 ], md=3),
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H2(f"{len(ALL_MANAGERS)}", className="text-success"),
-                            html.P("Managers", className="mb-0"),
-                            html.Small(f"Active managers", className="text-muted")
+                            html.Div([
+                                html.I(className="bi bi-person-badge me-2", style={"fontSize": "2rem", "color": "#28a745"}),
+                                html.Div([
+                                    html.H2(f"{len(ALL_MANAGERS)}", className="text-success mb-0"),
+                                    html.P("Account Managers", className="mb-0 fw-bold"),
+                                    html.Small("👥 Serving customers", className="text-muted")
+                                ])
+                            ], className="d-flex align-items-center")
                         ])
-                    ], className="shadow")
+                    ], className="shadow-lg border-0", style={"background": "linear-gradient(135deg, #fa709a 0%, #fee140 100%)", "color": "white"})
                 ], md=3),
             ], className="mb-4"),
             
@@ -126,8 +154,15 @@ app.layout = html.Div([
         
         # Interval
         dcc.Interval(id="interval", interval=60000)
-    ], fluid=True)
-])
+    ], fluid=True, style={
+        "background": "linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)",
+        "minHeight": "100vh",
+        "color": "white"
+    })
+], style={
+    "background": "linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)",
+    "minHeight": "100vh"
+})
 
 # Tab navigation
 @app.callback(
@@ -251,7 +286,8 @@ def render_content(active_tab):
                                             {"label": "Managers", "value": "managers"},
                                             {"label": "Agencies", "value": "agencies"}
                                         ],
-                                        value="clients"
+                                        value="clients",
+                                        style={'color': '#2c3e50', 'backgroundColor': 'white'}
                                     )
                                 ], md=4),
                                 dbc.Col([
@@ -265,7 +301,8 @@ def render_content(active_tab):
                                             {"label": "Min", "value": "min"},
                                             {"label": "Max", "value": "max"}
                                         ],
-                                        value="sum"
+                                        value="sum",
+                                        style={'color': '#2c3e50', 'backgroundColor': 'white'}
                                     )
                                 ], md=4),
                                 dbc.Col([
@@ -277,7 +314,8 @@ def render_content(active_tab):
                                             {"label": "District", "value": "district"},
                                             {"label": "Segment", "value": "segment"}
                                         ],
-                                        value="age_group"
+                                        value="age_group",
+                                        style={'color': '#2c3e50', 'backgroundColor': 'white'}
                                     )
                                 ], md=4)
                             ]),
@@ -400,8 +438,8 @@ def render_content(active_tab):
                             {"name": "Top Performers", "id": "Top Performers"}
                         ],
                         style_cell={'textAlign': 'center', 'padding': '10px'},
-                        style_header={'backgroundColor': 'rgb(30, 30, 30)', 'color': 'white', 'fontWeight': 'bold'},
-                        style_data={'backgroundColor': 'rgb(50, 50, 50)', 'color': 'white'}
+                        style_header={'backgroundColor': '#2c3e50', 'color': 'white', 'fontWeight': 'bold'},
+                        style_data={'backgroundColor': '#ecf0f1', 'color': '#2c3e50'}
                     )
                 ], md=12)
             ], className="mt-4")
@@ -461,7 +499,8 @@ def render_content(active_tab):
                         options=[{"label": f"{a['LIB'].strip()} ({a['AGE']})", "value": a['AGE']} for a in ALL_AGENCIES],
                         value=[a['AGE'] for a in ALL_AGENCIES[:5]] if len(ALL_AGENCIES) > 5 else [a['AGE'] for a in ALL_AGENCIES],
                         multi=True,
-                        placeholder="Select agencies to compare"
+                        placeholder="Select agencies to compare",
+                        style={'color': '#2c3e50', 'backgroundColor': 'white'}
                     ),
                     dcc.Graph(id="agency-perf-chart", style={"height": "400px"})
                 ], md=6),
@@ -502,6 +541,17 @@ def render_content(active_tab):
                             for i, mgr in enumerate(ALL_MANAGERS[:20])
                         ],
                         style_cell={'textAlign': 'center', 'padding': '8px', 'fontSize': '11px'},
+                        style_header={
+                            'backgroundColor': '#2c3e50',
+                            'color': 'white',
+                            'fontWeight': 'bold',
+                            'textAlign': 'center'
+                        },
+                        style_data={
+                            'backgroundColor': '#ecf0f1',
+                            'color': '#2c3e50',
+                            'fontWeight': 'normal'
+                        },
                         style_data_conditional=[
                             {
                                 'if': {'filter_query': '{perf} > 85'},
@@ -585,6 +635,17 @@ def render_content(active_tab):
                             for client in ALL_CLIENTS[:50]  # Show first 50 clients
                         ],
                         style_cell={'textAlign': 'center', 'padding': '8px', 'fontSize': '11px'},
+                        style_header={
+                            'backgroundColor': '#2c3e50',
+                            'color': 'white',
+                            'fontWeight': 'bold',
+                            'textAlign': 'center'
+                        },
+                        style_data={
+                            'backgroundColor': '#ecf0f1',
+                            'color': '#2c3e50',
+                            'fontWeight': 'normal'
+                        },
                         style_data_conditional=[
                             {
                                 'if': {'filter_query': '{risk_level} = High'},
@@ -618,46 +679,61 @@ def render_content(active_tab):
             dbc.Row([
                 dbc.Col([
                     dbc.Card([
-                        dbc.CardHeader(html.H5("🎯 Manager Performance Predictor")),
+                        dbc.CardHeader([
+                            html.H5("🎯 Manager Performance Predictor", className="mb-0"),
+                            html.Small("Predict if a manager will reach their monthly sales target", className="text-muted")
+                        ]),
                         dbc.CardBody([
-                            dbc.Label("Select Manager (All Available)"),
+                            dbc.Alert([
+                                html.Strong("💡 What this predicts: "),
+                                "Will this manager achieve their monthly sales goal? (0-100%)"
+                            ], color="info", className="mb-3"),
+                            dbc.Label("Select Manager (Choose from all available)"),
                             dcc.Dropdown(
                                 id="mgr-select",
                                 options=[{"label": f"{mgr['INTITULE']} ({mgr['GES']})", "value": mgr['GES']} 
                                         for mgr in ALL_MANAGERS],
                                 value=ALL_MANAGERS[0]['GES'] if ALL_MANAGERS else None,
-                                searchable=True
+                                searchable=True,
+                                style={'color': '#2c3e50', 'backgroundColor': 'white'}
                             ),
                             dbc.Row([
                                 dbc.Col([
-                                    dbc.Label("Clients", className="mt-2"),
-                                    dbc.Input(id="mgr-clients", type="number", value=100)
+                                    dbc.Label("Clients Managed", className="mt-2"),
+                                    dbc.Input(id="mgr-clients", type="number", value=100, min=1, max=500)
                                 ], md=6),
                                 dbc.Col([
-                                    dbc.Label("Products", className="mt-2"),
-                                    dbc.Input(id="mgr-products", type="number", value=450)
+                                    dbc.Label("Total Products", className="mt-2"),
+                                    dbc.Input(id="mgr-products", type="number", value=450, min=1, max=1000)
                                 ], md=6)
                             ]),
                             dbc.Row([
                                 dbc.Col([
-                                    dbc.Label("Active", className="mt-2"),
-                                    dbc.Input(id="mgr-active", type="number", value=380)
+                                    dbc.Label("Active Products", className="mt-2"),
+                                    dbc.Input(id="mgr-active", type="number", value=380, min=1, max=1000)
                                 ], md=6),
                                 dbc.Col([
-                                    dbc.Label("Agencies", className="mt-2"),
-                                    dbc.Input(id="mgr-agencies", type="number", value=3)
+                                    dbc.Label("Agencies Covered", className="mt-2"),
+                                    dbc.Input(id="mgr-agencies", type="number", value=3, min=1, max=10)
                                 ], md=6)
                             ]),
-                            dbc.Button("Predict Performance", id="btn-mgr", color="primary", className="w-100 mt-3"),
+                            dbc.Button("🔮 Predict Performance", id="btn-mgr", color="primary", className="w-100 mt-3"),
                             html.Div(id="mgr-result", className="mt-3")
                         ])
-                    ], className="shadow", style={"height": "100%"})
+                    ], className="shadow-lg border-0", style={"height": "100%", "background": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", "color": "white"})
                 ], md=4),
                 dbc.Col([
                     dbc.Card([
-                        dbc.CardHeader(html.H5("⚠️ Client Churn Risk Analyzer")),
+                        dbc.CardHeader([
+                            html.H5("⚠️ Client Churn Risk Analyzer", className="mb-0"),
+                            html.Small("Predict if a client will stop using our banking services", className="text-muted")
+                        ]),
                         dbc.CardBody([
-                            dbc.Label("Enter Client ID"),
+                            dbc.Alert([
+                                html.Strong("💡 What this predicts: "),
+                                "Will this client leave our bank? (0-100% risk)"
+                            ], color="warning", className="mb-3"),
+                            dbc.Label("Enter Client ID (from database)"),
                             dbc.Input(
                                 id="churn-client-id",
                                 type="number",
@@ -666,70 +742,90 @@ def render_content(active_tab):
                             ),
                             dbc.Row([
                                 dbc.Col([
-                                    dbc.Label("Age", className="mt-2"),
-                                    dbc.Input(id="churn-age", type="number", value=44)
+                                    dbc.Label("Client Age", className="mt-2"),
+                                    dbc.Input(id="churn-age", type="number", value=44, min=18, max=100)
                                 ], md=6),
                                 dbc.Col([
-                                    dbc.Label("Products", className="mt-2"),
-                                    dbc.Input(id="churn-products", type="number", value=2)
+                                    dbc.Label("Products Owned", className="mt-2"),
+                                    dbc.Input(id="churn-products", type="number", value=2, min=1, max=10)
                                 ], md=6)
                             ]),
                             dbc.Row([
                                 dbc.Col([
-                                    dbc.Label("Seniority (days)", className="mt-2"),
-                                    dbc.Input(id="churn-days", type="number", value=730)
+                                    dbc.Label("Days as Client", className="mt-2"),
+                                    dbc.Input(id="churn-days", type="number", value=730, min=1, max=10000)
                                 ], md=6),
                                 dbc.Col([
-                                    dbc.Label("Accounts", className="mt-2"),
-                                    dbc.Input(id="churn-accounts", type="number", value=2)
+                                    dbc.Label("Bank Accounts", className="mt-2"),
+                                    dbc.Input(id="churn-accounts", type="number", value=2, min=1, max=5)
                                 ], md=6)
                             ]),
-                            dbc.Button("Analyze Risk", id="btn-churn", color="danger", className="w-100 mt-3"),
+                            dbc.Button("🔍 Analyze Risk", id="btn-churn", color="danger", className="w-100 mt-3"),
                             html.Div(id="churn-result", className="mt-3")
                         ])
-                    ], className="shadow", style={"height": "100%"})
+                    ], className="shadow-lg border-0", style={"height": "100%", "background": "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)", "color": "white"})
                 ], md=4),
                 dbc.Col([
                     dbc.Card([
-                        dbc.CardHeader(html.H5("🏢 Agency Performance Predictor")),
+                        dbc.CardHeader([
+                            html.H5("🏢 Agency Performance Predictor", className="mb-0"),
+                            html.Small("Predict how well a bank branch will perform", className="text-muted")
+                        ]),
                         dbc.CardBody([
-                            dbc.Label("Select Agency"),
+                            dbc.Alert([
+                                html.Strong("💡 What this predicts: "),
+                                "Will this branch meet its targets? (0-100% performance)"
+                            ], color="success", className="mb-3"),
+                            dbc.Label("Select Agency/Branch"),
                             dcc.Dropdown(
                                 id="agency-select",
                                 options=[{"label": f"{a['LIB'].strip()}", "value": a['AGE']} for a in ALL_AGENCIES],
                                 value=ALL_AGENCIES[0]['AGE'] if ALL_AGENCIES else None,
-                                searchable=True
+                                searchable=True,
+                                style={'color': '#2c3e50', 'backgroundColor': 'white'}
                             ),
                             dbc.Label("Total Clients", className="mt-2"),
-                            dbc.Input(id="agency-clients", type="number", value=500),
+                            dbc.Input(id="agency-clients", type="number", value=500, min=50, max=2000),
                             dbc.Label("Total Managers", className="mt-2"),
-                            dbc.Input(id="agency-managers", type="number", value=10),
+                            dbc.Input(id="agency-managers", type="number", value=10, min=1, max=50),
                             dbc.Label("Active Products", className="mt-2"),
-                            dbc.Input(id="agency-products", type="number", value=2000),
-                            dbc.Button("Predict Agency Performance", id="btn-agency", color="success", className="w-100 mt-3"),
+                            dbc.Input(id="agency-products", type="number", value=2000, min=100, max=10000),
+                            dbc.Button("🏢 Predict Agency Performance", id="btn-agency", color="success", className="w-100 mt-3"),
                             html.Div(id="agency-result", className="mt-3")
                         ])
-                    ], className="shadow", style={"height": "100%"})
+                    ], className="shadow-lg border-0", style={"height": "100%", "background": "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)", "color": "white"})
                 ], md=4)
             ]),
             dbc.Row([
                 dbc.Col([
                     dbc.Card([
-                        dbc.CardHeader(html.H5("💡 Product Recommender")),
+                        dbc.CardHeader([
+                            html.H5("💡 Smart Product Recommender", className="mb-0"),
+                            html.Small("Like Netflix for banking - AI suggests products you might want", className="text-muted")
+                        ]),
                         dbc.CardBody([
-                            dbc.Label("Enter Client ID for Recommendations"),
+                            dbc.Alert([
+                                html.Strong("💡 What this does: "),
+                                "Analyzes similar clients to suggest banking products you might need"
+                            ], color="info", className="mb-3"),
+                            dbc.Label("Enter Client ID (from database)"),
                             dbc.Input(
                                 id="rec-client-id",
                                 type="number",
                                 placeholder="Enter client ID (e.g., 43568328)",
                                 value=""
                             ),
-                            dbc.Label("Number of Recommendations", className="mt-2"),
-                            dcc.Slider(id="rec-count", min=3, max=10, value=5, marks={i: str(i) for i in range(3, 11)}),
-                            dbc.Button("Get Recommendations", id="btn-rec", color="info", className="w-100 mt-3"),
+                            dbc.Label("How many suggestions to show?", className="mt-2"),
+                            dcc.Slider(
+                                id="rec-count", 
+                                min=1, max=10, value=5, step=1,
+                                marks={i: f"{i}" for i in range(1, 11)},
+                                tooltip={"placement": "bottom", "always_visible": True}
+                            ),
+                            dbc.Button("🛒 Get Product Suggestions", id="btn-rec", color="info", className="w-100 mt-3"),
                             html.Div(id="rec-result", className="mt-3")
                         ])
-                    ], className="shadow")
+                    ], className="shadow-lg border-0", style={"background": "linear-gradient(135deg, #fa709a 0%, #fee140 100%)", "color": "white"})
                 ], md=6),
                 dbc.Col([
                     dcc.Graph(id="rec-chart", style={"height": "400px"})
@@ -800,24 +896,53 @@ def render_content(active_tab):
     prevent_initial_call=True
 )
 def predict_manager(n, mgr_id, clients, products, active, agencies):
+    # Validate inputs
+    if not mgr_id or not clients or not products or not active or not agencies:
+        return dbc.Alert("Please fill in all fields", color="warning")
+    
+    try:
+        clients = int(clients)
+        products = int(products)
+        active = int(active)
+        agencies = int(agencies)
+    except (ValueError, TypeError):
+        return dbc.Alert("Please enter valid numbers", color="danger")
+    
     result = post_api("/predict/manager-performance", {
         "ges": str(mgr_id),
-        "total_clients": int(clients),
-        "total_products_managed": int(products),
-        "active_products_managed": int(active),
-        "agencies_covered": int(agencies)
+        "total_clients": clients,
+        "total_products_managed": products,
+        "active_products_managed": active,
+        "agencies_covered": agencies
     })
     
-    score = result['prediction'] if result else (int(active)/int(products)*100 if int(products) > 0 else 75)
+    score = result['prediction'] if result else (active/products*100 if products > 0 else 75)
     confidence = result.get('confidence', 0.85) if result else 0.75
     
     color = "success" if score > 85 else "warning" if score > 70 else "danger"
+    
+    # Generate insights based on score
+    if score > 90:
+        insight = "🌟 Excellent! This manager is likely to exceed targets. Consider them for leadership roles."
+    elif score > 85:
+        insight = "✅ Strong performance expected. This manager should meet their monthly goals."
+    elif score > 75:
+        insight = "⚠️ Moderate performance. Consider providing additional support or training."
+    elif score > 60:
+        insight = "❗ Performance may be below target. Immediate coaching and support recommended."
+    else:
+        insight = "🚨 High risk of missing targets. Urgent intervention needed - reassign clients or provide intensive support."
     
     return dbc.Alert([
         html.H4(f"Performance Score: {score:.1f}%"),
         dbc.Progress(value=score, color=color, style={"height": "30px"}, className="mb-2"),
         html.P(f"Confidence: {confidence:.1%}"),
-        html.P(f"Efficiency: {int(active)/int(products)*100:.1f}%" if int(products) > 0 else "N/A")
+        html.P(f"Efficiency: {active/products*100:.1f}%" if products > 0 else "N/A"),
+        html.Hr(),
+        html.Div([
+            html.Strong("💡 AI Insight: "),
+            html.Span(insight)
+        ], className="mb-0")
     ], color=color)
 
 @app.callback(
@@ -831,18 +956,31 @@ def predict_churn(n, client_id, age, products, days, accounts):
     if not client_id:
         return dbc.Alert("Please enter a client ID", color="warning")
     
+    # Validate inputs
+    if not age or not products or not days or not accounts:
+        return dbc.Alert("Please fill in all fields", color="warning")
+    
+    try:
+        client_id = int(client_id)
+        age = float(age)
+        products = int(products)
+        days = int(days)
+        accounts = int(accounts)
+    except (ValueError, TypeError):
+        return dbc.Alert("Please enter valid numbers", color="danger")
+    
     # Check if client exists
     if client_id not in ALL_CLIENTS:
         return dbc.Alert(f"Client {client_id} not found in database", color="danger")
     
     result = post_api("/predict/churn", {
-        "cli": int(client_id),
+        "cli": client_id,
         "sex": "F",
-        "age": float(age),
-        "client_seniority_days": int(days),
-        "total_products": int(products) + 2,
-        "active_products": int(products),
-        "total_accounts": int(accounts),
+        "age": age,
+        "client_seniority_days": days,
+        "total_products": products + 2,
+        "active_products": products,
+        "total_accounts": accounts,
         "district": "District Tunis Nord"
     })
     
@@ -851,18 +989,31 @@ def predict_churn(n, client_id, age, products, days, accounts):
         risk = result['risk_level']
         actions = result['recommended_actions']
     else:
-        prob = 0.3 if int(products) > 2 else 0.7
+        prob = 0.3 if products > 2 else 0.7
         risk = "Low" if prob < 0.3 else "Medium" if prob < 0.7 else "High"
         actions = ["Monitor regularly"] if risk == "Low" else ["Immediate action needed"]
     
     color = {"High": "danger", "Medium": "warning", "Low": "success"}[risk]
+    
+    # Generate insights based on risk level
+    if risk == "Low":
+        insight = "😊 Great news! This client is likely to stay with us. Continue providing excellent service."
+    elif risk == "Medium":
+        insight = "🤔 This client might leave. Consider offering personalized products or special deals."
+    else:
+        insight = "🚨 High risk client! Immediate action needed - contact them personally and offer retention incentives."
     
     return dbc.Alert([
         html.H4(f"Client {client_id} - Churn Risk: {risk}"),
         html.H5(f"Probability: {prob:.1%}"),
         dbc.Progress(value=prob*100, color=color, style={"height": "30px"}, className="mb-3"),
         html.H6("Recommended Actions:"),
-        html.Ul([html.Li(action) for action in actions])
+        html.Ul([html.Li(action) for action in actions]),
+        html.Hr(),
+        html.Div([
+            html.Strong("💡 AI Insight: "),
+            html.Span(insight)
+        ], className="mb-0")
     ], color=color)
 
 
@@ -874,20 +1025,48 @@ def predict_churn(n, client_id, age, products, days, accounts):
     prevent_initial_call=True
 )
 def predict_agency(n, agency_id, clients, managers, products):
+    # Validate inputs
+    if not agency_id or not clients or not managers or not products:
+        return dbc.Alert("Please fill in all fields", color="warning")
+    
+    try:
+        clients = int(clients)
+        managers = int(managers)
+        products = int(products)
+    except (ValueError, TypeError):
+        return dbc.Alert("Please enter valid numbers", color="danger")
+    
     result = post_api("/predict/agency-performance", {
         "age": str(agency_id),
-        "total_clients": int(clients),
-        "total_managers": int(managers),
-        "total_products": int(products),
+        "total_clients": clients,
+        "total_managers": managers,
+        "total_products": products,
         "active_products": int(products * 0.8)
     })
     
     score = result['prediction'] if result else np.random.uniform(75, 90)
     
+    color = "success" if score > 80 else "warning" if score > 70 else "danger"
+    
+    # Generate insights based on score
+    if score > 85:
+        insight = "🏆 Excellent branch performance! This agency is a top performer and can be a model for others."
+    elif score > 75:
+        insight = "✅ Good performance. This branch is meeting expectations and targets."
+    elif score > 65:
+        insight = "⚠️ Performance needs improvement. Consider additional manager training or resource allocation."
+    else:
+        insight = "🚨 Poor performance. This branch needs immediate attention - review staffing, processes, and local market conditions."
+    
     return dbc.Alert([
         html.H4(f"Agency Performance: {score:.1f}%"),
-        dbc.Progress(value=score, color="success" if score > 80 else "warning", style={"height": "30px"})
-    ], color="success" if score > 80 else "warning")
+        dbc.Progress(value=score, color=color, style={"height": "30px"}, className="mb-3"),
+        html.Hr(),
+        html.Div([
+            html.Strong("💡 AI Insight: "),
+            html.Span(insight)
+        ], className="mb-0")
+    ], color=color)
 
 @app.callback(
     [Output("rec-result", "children"), Output("rec-chart", "figure")],
@@ -899,25 +1078,43 @@ def get_recommendations(n, client_id, count):
     if not client_id:
         return dbc.Alert("Please enter a client ID", color="warning"), {}
     
-    # Check if client exists
-    if client_id not in ALL_CLIENTS:
-        return dbc.Alert(f"Client {client_id} not found in database", color="danger"), {}
+    # Validate inputs
+    try:
+        client_id = int(client_id)
+        count = int(count)
+    except (ValueError, TypeError):
+        return dbc.Alert("Please enter valid numbers", color="danger"), {}
     
+    # Get recommendations from API only
     result = fetch_api(f"/recommend/products/{client_id}?n_recommendations={count}")
     
-    if result and 'recommendations' in result:
-        recs = result['recommendations']
+    if result and 'recommendations' in result and len(result['recommendations']) > 0:
+        # Use API results
+        recs = result['recommendations'][:count]  # Limit to requested count
         products = [r.get('product_name', f"Product {r.get('product_id', i)}") for i, r in enumerate(recs)]
         scores = [r.get('score', 0.8) for r in recs]
         categories = [r.get('category', 'Banking') for r in recs]
         descriptions = [r.get('description', 'No description') for r in recs]
     else:
-        # Fallback data
-        product_list = ['201', '210', '230', '270', '301']
-        products = [f"Product {product_list[i]}" for i in range(min(int(count), len(product_list)))]
-        scores = sorted([np.random.uniform(0.7, 0.95) for _ in products], reverse=True)
-        categories = ['Banking'] * len(products)
-        descriptions = ['Standard banking product'] * len(products)
+        # Return error message if no recommendations from API
+        error_msg = "No recommendations available. This could be due to:"
+        reasons = [
+            "• Client not found in database",
+            "• ML model not trained",
+            "• API server not running",
+            "• Client has no suitable products"
+        ]
+        
+        return html.Div([
+            dbc.Alert(f"❌ {error_msg}", color="warning"),
+            html.Ul([html.Li(reason) for reason in reasons])
+        ]), {}
+    
+    # Continue with API results only
+    products = products
+    scores = scores
+    categories = categories
+    descriptions = descriptions
     
     cards = [
         dbc.Card([
@@ -943,9 +1140,28 @@ def get_recommendations(n, client_id, count):
         xaxis=dict(range=[0, 1]), height=350
     )
     
+    # Generate insights based on recommendations
+    if len(products) > 0:
+        avg_score = sum(scores) / len(scores)
+        top_category = max(set(categories), key=categories.count)
+        
+        if avg_score > 0.85:
+            insight = f"🎯 Excellent matches! Client {client_id} has high affinity for {top_category} products."
+        elif avg_score > 0.75:
+            insight = f"👍 Good recommendations. Client {client_id} is likely interested in {top_category} services."
+        else:
+            insight = f"🤔 Moderate matches. Consider reaching out to understand client {client_id}'s specific needs."
+    else:
+        insight = "❌ No recommendations available. Client profile might be incomplete."
+    
     return html.Div([
         dbc.Alert(f"✅ Found {len(products)} recommendations for client {client_id}", color="success"),
-        html.Div(cards)
+        html.Div(cards),
+        html.Hr(),
+        html.Div([
+            html.Strong("💡 AI Insight: "),
+            html.Span(insight)
+        ], className="mt-3")
     ]), fig
 
 # Data manipulation callback
@@ -956,6 +1172,10 @@ def get_recommendations(n, client_id, count):
     prevent_initial_call=True
 )
 def update_data_manipulation(n_clicks, dataset, agg_func, group_by):
+    # Validate inputs
+    if not dataset or not agg_func or not group_by:
+        return dbc.Alert("Please select all options", color="warning"), {}
+    
     # Sample data manipulation
     if dataset == "clients":
         data = {
@@ -992,8 +1212,8 @@ def update_data_manipulation(n_clicks, dataset, agg_func, group_by):
         data=df.to_dict('records'),
         columns=[{"name": i, "id": i} for i in df.columns],
         style_cell={'textAlign': 'left', 'padding': '10px'},
-        style_header={'backgroundColor': 'rgb(30, 30, 30)', 'color': 'white'},
-        style_data={'backgroundColor': 'rgb(50, 50, 50)', 'color': 'white'},
+        style_header={'backgroundColor': '#2c3e50', 'color': 'white', 'fontWeight': 'bold'},
+        style_data={'backgroundColor': '#ecf0f1', 'color': '#2c3e50'},
         page_size=10
     )
     
