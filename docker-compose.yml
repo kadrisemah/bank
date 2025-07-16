@@ -1,0 +1,96 @@
+# docker-compose.yml
+
+version: '3.8'
+
+services:
+  # FastAPI Backend
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: banking-ml-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - MODEL_PATH=/app/data/models
+      - DATA_PATH=/app/data
+    volumes:
+      - ./data:/app/data
+      - ./src:/app/src
+    command: uvicorn src.api.app:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - banking-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Plotly Dash Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: banking-ml-frontend
+    ports:
+      - "8050:8050"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - API_URL=http://backend:8000
+    volumes:
+      - ./src/dashboard:/app/dashboard
+    command: python dashboard/app.py
+    depends_on:
+      - backend
+    networks:
+      - banking-network
+
+  # PostgreSQL Database (optional)
+  postgres:
+    image: postgres:15
+    container_name: banking-ml-postgres
+    environment:
+      - POSTGRES_USER=banking_user
+      - POSTGRES_PASSWORD=banking_pass
+      - POSTGRES_DB=banking_ml
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - banking-network
+
+  # Redis Cache (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: banking-ml-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - banking-network
+
+  # Nginx Reverse Proxy (optional)
+  nginx:
+    image: nginx:alpine
+    container_name: banking-ml-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - banking-network
+
+networks:
+  banking-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
