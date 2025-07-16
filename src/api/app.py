@@ -225,8 +225,14 @@ async def recommend_products(client_id: int, n_recommendations: int = 5):
         # Use trained ML model for recommendations
         if 'product_recommender' in models and models['product_recommender'] is not None:
             try:
+                logger.info(f"Product recommender model is available")
+                logger.info(f"User-item matrix shape: {models['product_recommender'].user_item_matrix.shape}")
+                logger.info(f"Available clients in matrix: {len(models['product_recommender'].user_item_matrix.index)}")
+                logger.info(f"Client {client_id} in matrix: {client_id in models['product_recommender'].user_item_matrix.index}")
+                
                 # Get recommendations from trained model
                 raw_recommendations = models['product_recommender'].get_recommendations(client_id, n_recommendations)
+                logger.info(f"Raw recommendations: {raw_recommendations}")
                 
                 # Product mapping for names and descriptions
                 product_mapping = {
@@ -248,31 +254,39 @@ async def recommend_products(client_id: int, n_recommendations: int = 5):
                 # Convert ML model results to API format - Convert counts to probabilities
                 recommendations = []
                 
-                # Get all raw scores to normalize properly
-                all_scores = [float(rec['score']) for rec in raw_recommendations]
-                total_score = sum(all_scores) if all_scores else 1
-                
-                for rec in raw_recommendations:
-                    product_id = str(rec['product_id']).strip()
+                # Check if we got any recommendations
+                if not raw_recommendations:
+                    logger.warning(f"No raw recommendations returned for client {client_id}")
+                    recommendations = []
+                else:
+                    logger.info(f"Processing {len(raw_recommendations)} raw recommendations")
                     
-                    # Get product info
-                    product_info = product_mapping.get(product_id, {
-                        'name': f'Product {product_id}',
-                        'category': 'Banking',
-                        'description': 'Banking product'
-                    })
+                    # Get all raw scores to normalize properly
+                    all_scores = [float(rec['score']) for rec in raw_recommendations]
+                    total_score = sum(all_scores) if all_scores else 1
+                    logger.info(f"Total score for normalization: {total_score}")
                     
-                    # Convert count to probability (0-1 range)
-                    raw_score = float(rec['score'])
-                    probability_score = raw_score / total_score if total_score > 0 else 0
-                    
-                    recommendations.append({
-                        'product_id': product_id,
-                        'score': probability_score,  # Now in 0-1 range
-                        'product_name': product_info['name'],
-                        'category': product_info['category'],
-                        'description': product_info['description']
-                    })
+                    for rec in raw_recommendations:
+                        product_id = str(rec['product_id']).strip()
+                        
+                        # Get product info
+                        product_info = product_mapping.get(product_id, {
+                            'name': f'Product {product_id}',
+                            'category': 'Banking',
+                            'description': 'Banking product'
+                        })
+                        
+                        # Convert count to probability (0-1 range)
+                        raw_score = float(rec['score'])
+                        probability_score = raw_score / total_score if total_score > 0 else 0
+                        
+                        recommendations.append({
+                            'product_id': product_id,
+                            'score': probability_score,  # Now in 0-1 range
+                            'product_name': product_info['name'],
+                            'category': product_info['category'],
+                            'description': product_info['description']
+                        })
                 
                 logger.info(f"Generated {len(recommendations)} recommendations using trained ML model")
                 

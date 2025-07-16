@@ -163,10 +163,19 @@ class ProductRecommender:
     
     def get_recommendations(self, client_id: int, n_recommendations: int = 5) -> List[Dict]:
         """Get product recommendations for a client"""
+        logger.info(f"Getting recommendations for client {client_id}")
+        logger.info(f"Matrix has {len(self.user_item_matrix.index)} clients")
+        
         if client_id not in self.user_item_matrix.index:
+            logger.info(f"Client {client_id} not in matrix - using cold start")
             # Cold start - recommend popular products
             popular_products = self.user_item_matrix.sum().sort_values(ascending=False).head(n_recommendations)
-            return [{'product_id': prod, 'score': score} for prod, score in popular_products.items()]
+            logger.info(f"Popular products: {popular_products}")
+            result = [{'product_id': prod, 'score': float(score)} for prod, score in popular_products.items()]
+            logger.info(f"Cold start recommendations: {result}")
+            return result
+        
+        logger.info(f"Client {client_id} found in matrix - using collaborative filtering")
         
         # Get client features
         client_idx = self.user_item_matrix.index.get_loc(client_id)
@@ -175,9 +184,11 @@ class ProductRecommender:
         # Find similar users
         distances, indices = self.knn_model.kneighbors(client_vector)
         similar_users = self.user_item_matrix.index[indices[0][1:]]  # Exclude self
+        logger.info(f"Found {len(similar_users)} similar users")
         
         # Get products used by similar users but not by this client
         client_products = set(self.user_item_matrix.columns[self.user_item_matrix.loc[client_id] > 0])
+        logger.info(f"Client has {len(client_products)} existing products")
         
         recommendations = {}
         for similar_user in similar_users:
@@ -191,14 +202,44 @@ class ProductRecommender:
                     recommendations[product] = 0
                 recommendations[product] += 1
         
-        # Sort by frequency
+        logger.info(f"Found {len(recommendations)} candidate products from similar users")
+        
+        # If no recommendations from similar users, fall back to popular products
+        if not recommendations:
+            logger.info("No products from similar users, using popular products fallback")
+            # Get all products this client doesn't have
+            all_products = set(self.user_item_matrix.columns)
+            available_products = all_products - client_products
+            
+            if available_products:
+                # Get popularity scores for available products
+                product_popularity = self.user_item_matrix.sum()
+                available_popularity = {prod: product_popularity[prod] for prod in available_products if prod in product_popularity.index}
+                
+                # Sort by popularity
+                sorted_by_popularity = sorted(
+                    available_popularity.items(),
+                    key=lambda x: x[1],
+                    reverse=True
+                )[:n_recommendations]
+                
+                result = [{'product_id': prod, 'score': float(score)} for prod, score in sorted_by_popularity]
+                logger.info(f"Popular product recommendations: {result}")
+                return result
+            else:
+                logger.warning(f"Client {client_id} already has all available products!")
+                return []
+        
+        # Sort by frequency from similar users
         sorted_recommendations = sorted(
             recommendations.items(), 
             key=lambda x: x[1], 
             reverse=True
         )[:n_recommendations]
         
-        return [{'product_id': prod, 'score': score} for prod, score in sorted_recommendations]
+        result = [{'product_id': prod, 'score': float(score)} for prod, score in sorted_recommendations]
+        logger.info(f"Collaborative filtering recommendations: {result}")
+        return result
     
     def save_model(self, path: str):
         """Save recommender models"""
