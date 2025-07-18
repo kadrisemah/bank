@@ -234,22 +234,41 @@ async def recommend_products(client_id: int, n_recommendations: int = 5):
                 raw_recommendations = models['product_recommender'].get_recommendations(client_id, n_recommendations)
                 logger.info(f"Raw recommendations: {raw_recommendations}")
                 
-                # Product mapping for names and descriptions
-                product_mapping = {
-                    '201': {'name': 'Savings Account Premium', 'category': 'Savings', 'description': 'High-yield savings account with premium benefits'},
-                    '210': {'name': 'Personal Loan', 'category': 'Loans', 'description': 'Flexible personal loan with competitive rates'},
-                    '230': {'name': 'Auto Insurance', 'category': 'Insurance', 'description': 'Comprehensive auto insurance coverage'},
-                    '270': {'name': 'Investment Portfolio', 'category': 'Investment', 'description': 'Diversified investment portfolio management'},
-                    '301': {'name': 'Credit Card Gold', 'category': 'Credit', 'description': 'Premium credit card with rewards program'},
-                    '145': {'name': 'Home Mortgage', 'category': 'Loans', 'description': 'Fixed-rate home mortgage loan'},
-                    '189': {'name': 'Life Insurance', 'category': 'Insurance', 'description': 'Term life insurance policy'},
-                    '234': {'name': 'Business Account', 'category': 'Business', 'description': 'Professional business banking account'},
-                    '156': {'name': 'Mobile Banking Plus', 'category': 'Digital', 'description': 'Enhanced mobile banking services'},
-                    '278': {'name': 'Retirement Plan', 'category': 'Investment', 'description': 'Long-term retirement savings plan'},
-                    '221': {'name': 'Current Account', 'category': 'Banking', 'description': 'Standard current account'},
-                    '222': {'name': 'Business Current Account', 'category': 'Business', 'description': 'Business current account'},
-                    '665': {'name': 'Investment Fund', 'category': 'Investment', 'description': 'Investment fund portfolio'}
-                }
+                # First try to get product names from the trained model
+                product_mapping = {}
+                
+                # Check if the model has product names
+                if hasattr(models['product_recommender'], 'product_names') and models['product_recommender'].product_names:
+                    # Use product names from the trained model
+                    for cpro, name in models['product_recommender'].product_names.items():
+                        product_mapping[str(cpro)] = {
+                            'name': name,
+                            'category': 'Banking',  # Default category
+                            'description': name
+                        }
+                    logger.info(f"Loaded {len(product_mapping)} product mappings from trained model")
+                else:
+                    # Fallback: try to load from reference data
+                    try:
+                        product_ref = pd.read_csv('data/processed/product_reference.csv')
+                        for _, row in product_ref.iterrows():
+                            product_mapping[str(row['CPRO'])] = {
+                                'name': row['LIB'],
+                                'category': f"Category_{row['CGAM']}" if pd.notna(row['CGAM']) else 'Banking',
+                                'description': row['LIB']
+                            }
+                        logger.info(f"Loaded {len(product_mapping)} product mappings from reference data")
+                    except:
+                        # Final fallback to hardcoded mapping
+                        product_mapping = {
+                            '201': {'name': 'Compte Epargne Special', 'category': 'Savings', 'description': 'Compte Epargne Special'},
+                            '210': {'name': 'EBANKING MIXTE PART', 'category': 'Banking', 'description': 'EBANKING MIXTE PART'},
+                            '221': {'name': 'Compte Courant en TND', 'category': 'Banking', 'description': 'Compte Courant en TND'},
+                            '222': {'name': 'Compte Chèque en TND', 'category': 'Banking', 'description': 'Compte Chèque en TND'},
+                            '653': {'name': 'VISA ELECTRON NATIONALE', 'category': 'Cards', 'description': 'VISA ELECTRON NATIONALE'},
+                            '665': {'name': 'CARTE WAFFER', 'category': 'Cards', 'description': 'CARTE WAFFER'}
+                        }
+                        logger.warning("Using fallback product mapping")
                 
                 # Convert ML model results to API format - Convert counts to probabilities
                 recommendations = []

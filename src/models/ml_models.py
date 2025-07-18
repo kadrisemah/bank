@@ -127,11 +127,17 @@ class ProductRecommender:
     def __init__(self):
         self.user_item_matrix = None
         self.product_features = None
+        self.product_names = None  # Store product names mapping
         self.svd_model = None
         self.knn_model = None
         
     def create_user_item_matrix(self, df: pd.DataFrame) -> pd.DataFrame:
         """Create user-item interaction matrix"""
+        # Store product names mapping if available
+        if 'product_name' in df.columns:
+            self.product_names = df.groupby('CPRO')['product_name'].first().to_dict()
+            logger.info(f"Stored product names for {len(self.product_names)} products")
+        
         # Assuming df has CLI (client), CPRO (product), and is_active columns
         interactions = df.groupby(['CLI', 'CPRO'])['is_active'].max().reset_index()
         
@@ -246,12 +252,19 @@ class ProductRecommender:
         joblib.dump(self.svd_model, f"{path}_svd.pkl")
         joblib.dump(self.knn_model, f"{path}_knn.pkl")
         joblib.dump(self.user_item_matrix, f"{path}_matrix.pkl")
+        joblib.dump(self.product_names, f"{path}_names.pkl")  # Save product names
     
     def load_model(self, path: str):
         """Load recommender models"""
         self.svd_model = joblib.load(f"{path}_svd.pkl")
         self.knn_model = joblib.load(f"{path}_knn.pkl")
         self.user_item_matrix = joblib.load(f"{path}_matrix.pkl")
+        try:
+            self.product_names = joblib.load(f"{path}_names.pkl")  # Load product names
+            logger.info(f"Loaded product names for {len(self.product_names)} products")
+        except:
+            logger.warning("Product names not found in saved model")
+            self.product_names = None
 
 
 class ChurnPredictor:
@@ -422,9 +435,17 @@ class ModelTrainer:
         
         # Train product recommender
         logger.info("Training product recommender...")
-        # Create user-item matrix from product data
-        products_df = pd.read_excel(f"{self.data_path}/../raw/Produits_DFSOU_replaced_DDMMYYYY.xlsx")
-        products_df['is_active'] = (products_df['ETA'] == 'VA').astype(int)
+        # Use enhanced product data with names
+        try:
+            # Try to load enhanced product data first
+            products_df = pd.read_csv(f"{self.data_path}/products_cleaned.csv")
+            logger.info(f"Using enhanced product data: {products_df.shape}")
+            logger.info(f"Enhanced data includes: {products_df.columns.tolist()}")
+        except:
+            # Fallback to raw data if enhanced data not available
+            logger.warning("Enhanced product data not found, using raw data")
+            products_df = pd.read_excel(f"{self.data_path}/../raw/Produits_DFSOU_replaced_DDMMYYYY.xlsx")
+            products_df['is_active'] = (products_df['ETA'] == 'VA').astype(int)
         
         self.product_recommender.create_user_item_matrix(products_df)
         self.product_recommender.train_svd(n_components=30)

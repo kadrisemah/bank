@@ -4,6 +4,9 @@
 
 This comprehensive guide documents every step of the banking ML project implementation, from raw data processing to production API deployment. This document serves as a complete reference for understanding the data pipeline, model training, and system architecture.
 
+### **🆕 Latest Enhancement: Product Name Integration**
+This implementation now includes comprehensive product name mapping that transforms numeric codes into meaningful business terms. All ML models are trained with enhanced product data, and APIs return real French product names instead of just numeric codes.
+
 ## 🗂️ **Data Structure & Files**
 
 ### **Raw Data Files** (`data/raw/`)
@@ -30,7 +33,9 @@ This comprehensive guide documents every step of the banking ML project implemen
 ├── accounts_cleaned.csv                  # Cleaned account data
 ├── clients_cleaned.csv                   # Cleaned client data
 ├── eerp_cleaned.csv                      # Cleaned EERP data
-└── products_cleaned.csv                  # Cleaned product data
+├── products_cleaned.csv                  # 🆕 Enhanced with product names
+├── product_reference.csv                # Product code → name mapping
+└── pack_reference.csv                   # Pack code → name mapping
 ```
 
 ### **Model Files** (`data/models/`)
@@ -101,7 +106,7 @@ def clean_clients_data(self) -> pd.DataFrame:
 - ✅ **Categorization**: Age groups for segmentation
 - ✅ **Missing values**: Filled with appropriate defaults
 
-#### **Product Data Cleaning**
+#### **Product Data Cleaning with Reference Mapping**
 ```python
 def clean_products_data(self) -> pd.DataFrame:
     # Date conversions
@@ -113,13 +118,31 @@ def clean_products_data(self) -> pd.DataFrame:
     
     # Status flags
     df['is_active'] = df['ETA'] == 'VA'  # Active status
+    
+    # 🆕 ENHANCED: Merge product reference data
+    references = self.load_product_references()
+    
+    # Merge product names and categories
+    df = df.merge(references['products'][['CPRO', 'LIB', 'ATT', 'CGAM']], 
+                  on='CPRO', how='left')
+    df.rename(columns={'LIB': 'product_name', 'ATT': 'product_attribute', 
+                      'CGAM': 'product_category'}, inplace=True)
+    
+    # Merge pack names
+    df = df.merge(references['packs'][['CPACK', 'LIB']], 
+                  on='CPACK', how='left')
+    df.rename(columns={'LIB': 'pack_name'}, inplace=True)
 ```
 
-**Cleaning Operations:**
+**Enhanced Cleaning Operations:**
 - ✅ **Date parsing**: Start/end dates
 - ✅ **Duration calculation**: Product lifecycle
 - ✅ **Status flags**: Active/inactive products
 - ✅ **Data validation**: Consistency checks
+- 🆕 **Product name mapping**: CPRO → Product names
+- 🆕 **Pack name mapping**: CPACK → Pack names
+- 🆕 **Category mapping**: Product categorization
+- 🆕 **Reference data integration**: 673 product mappings
 
 #### **Account Data Cleaning**
 ```python
@@ -376,6 +399,134 @@ def create_churn_label(self, df: pd.DataFrame) -> pd.Series:
 - **Recall (High Risk)**: 0.72
 - **F1-Score**: 0.74
 
+## 🆕 **Product Name Enhancement Implementation**
+
+### **Enhancement Overview**
+The banking ML project has been enhanced with comprehensive product name mapping that transforms numeric codes into meaningful business terms. This enhancement affects the entire pipeline from data processing to API responses.
+
+### **Enhanced Data Structure**
+
+#### **Before Enhancement:**
+```csv
+CLI,CPRO,ETA,CPACK
+43568402,201,VA,77
+43568402,210,VA,77
+43568402,665,VA,77
+```
+
+#### **After Enhancement:**
+```csv
+CLI,CPRO,product_name,ETA,CPACK,pack_name,product_category
+43568402,201,"Compte Epargne Special",VA,77,"PACK OFFRE WAFFER",200
+43568402,210,"EBANKING MIXTE PART",VA,77,"PACK OFFRE WAFFER",900
+43568402,665,"CARTE WAFFER",VA,77,"PACK OFFRE WAFFER",650
+```
+
+### **Implementation Details**
+
+#### **Data Processor Enhancement** (`src/data_processing/data_processor.py:75-177`)
+```python
+def load_product_references(self) -> Dict[str, pd.DataFrame]:
+    """Load product and pack reference data from Excel files"""
+    # Loads 673 product mappings from referenciel_produits.xlsx
+    # Loads 17 pack mappings from referenciel_packs.xlsx
+
+def clean_products_data(self) -> pd.DataFrame:
+    """Clean products data with reference name mapping"""
+    # Merge product names: CPRO → product_name
+    # Merge pack names: CPACK → pack_name
+    # Add product categories: CGAM → product_category
+```
+
+#### **Model Training Enhancement** (`src/models/ml_models.py:425-436`)
+```python
+# Enhanced model training now uses products_cleaned.csv
+products_df = pd.read_csv("data/processed/products_cleaned.csv")
+logger.info(f"Enhanced data includes: {products_df.columns.tolist()}")
+
+# Product names are stored in the recommender model
+self.product_names = df.groupby('CPRO')['product_name'].first().to_dict()
+```
+
+#### **API Enhancement** (`src/api/app.py:241-271`)
+```python
+# API loads product names from trained model
+if hasattr(models['product_recommender'], 'product_names'):
+    for cpro, name in models['product_recommender'].product_names.items():
+        product_mapping[str(cpro)] = {
+            'name': name,
+            'category': 'Banking',
+            'description': name
+        }
+```
+
+### **Product Reference Data**
+
+#### **Product Mappings (673 total)**
+| CPRO | Product Name | Category | Usage Count |
+|------|-------------|----------|-------------|
+| 201 | Compte Epargne Special | 200 | 10,514 |
+| 210 | EBANKING MIXTE PART | 900 | 6,568 |
+| 221 | Compte Courant en TND | 220 | 3,245 |
+| 222 | Compte Chèque en TND | 220 | 8,070 |
+| 653 | VISA ELECTRON NATIONALE | 650 | 4,739 |
+| 665 | CARTE WAFFER | 650 | 892 |
+
+#### **Pack Mappings (17 total)**
+| CPACK | Pack Name | Usage Count |
+|-------|-----------|-------------|
+| 11 | PACK KYASSI BRONZE | 23,702 |
+| 22 | PACK KYASSI SILVER | 8,248 |
+| 77 | PACK OFFRE WAFFER | 4,871 |
+| 33 | PACK KYASSI GOLD | 1,234 |
+
+### **Enhanced Model Training Results**
+
+#### **Product Recommender Enhancement:**
+```
+INFO:src.models.ml_models:Using enhanced product data: (63563, 13)
+INFO:src.models.ml_models:Enhanced data includes: ['CLI', 'UTSOU', 'CPACK', 'CPRO', 'ETA', 'DDSOU', 'DFSOU', 'product_duration_days', 'is_active', 'product_name', 'product_attribute', 'product_category', 'pack_name']
+INFO:src.models.ml_models:Stored product names for 94 products
+INFO:src.models.ml_models:SVD trained with 30 components
+INFO:src.models.ml_models:User-item matrix shape: (15274, 245)
+```
+
+#### **Enhanced Model Files:**
+- `product_recommender_names.pkl` - Product name mappings
+- `product_reference.csv` - Complete product reference
+- `pack_reference.csv` - Complete pack reference
+
+### **API Response Enhancement**
+
+#### **Enhanced Product Recommendations:**
+```json
+{
+    "client_id": 43568402,
+    "recommendations": [
+        {
+            "product_id": "201",
+            "score": 0.85,
+            "product_name": "Compte Epargne Special",
+            "category": "Category_200",
+            "description": "Compte Epargne Special"
+        }
+    ],
+    "recommendation_type": "collaborative_filtering"
+}
+```
+
+### **Business Impact**
+
+#### **Before Enhancement:**
+- Product recommendations with numeric codes (201, 210, 665)
+- Difficult to interpret ML results
+- Need manual mapping for business users
+
+#### **After Enhancement:**
+- Product recommendations with real names ("Compte Epargne Special", "VISA ELECTRON NATIONALE")
+- Immediately interpretable results
+- Business-ready outputs
+
 ## 🎯 **Model Training Results**
 
 ### **Training Execution** (`python main.py --train`)
@@ -516,28 +667,35 @@ POST /api/v1/predict/manager-performance
 }
 ```
 
-#### **Product Recommendations**:
+#### **Product Recommendations** 🆕 **Enhanced with Real Product Names**:
 ```json
 // Request
-GET /api/v1/recommend/products/12345?n_recommendations=5
+GET /api/v1/recommend/products/43568402?n_recommendations=5
 
 // Response
 {
-    "client_id": 12345,
+    "client_id": 43568402,
     "recommendations": [
         {
             "product_id": "201",
             "score": 0.85,
-            "product_name": "Savings Account Premium",
-            "category": "Savings",
-            "description": "High-yield savings account with premium benefits"
+            "product_name": "Compte Epargne Special",
+            "category": "Category_200",
+            "description": "Compte Epargne Special"
         },
         {
-            "product_id": "210",
+            "product_id": "653",
             "score": 0.72,
-            "product_name": "Personal Loan",
-            "category": "Loans",
-            "description": "Flexible personal loan with competitive rates"
+            "product_name": "VISA ELECTRON NATIONALE",
+            "category": "Category_650",
+            "description": "VISA ELECTRON NATIONALE"
+        },
+        {
+            "product_id": "665",
+            "score": 0.68,
+            "product_name": "CARTE WAFFER",
+            "category": "Category_650",
+            "description": "CARTE WAFFER"
         }
     ],
     "recommendation_type": "collaborative_filtering"

@@ -30,12 +30,15 @@ banking-ml-project/
 │   │   ├── manager_performance_*.pkl
 │   │   ├── agency_performance_*.pkl  
 │   │   ├── product_recommender_*.pkl
+│   │   ├── product_recommender_names.pkl # Product name mappings
 │   │   └── churn_predictor_*.pkl
 │   ├── 🔄 processed/                 # Feature-engineered data
 │   │   ├── client_features.csv
 │   │   ├── manager_features.csv
 │   │   ├── agency_features.csv
-│   │   └── products_cleaned.csv
+│   │   ├── products_cleaned.csv      # Enhanced with product names
+│   │   ├── product_reference.csv     # Product code → name mapping
+│   │   └── pack_reference.csv        # Pack code → name mapping
 │   └── 📋 raw/                       # Original Excel files
 ├── 💻 src/
 │   ├── 🔧 api/                       # FastAPI backend
@@ -56,19 +59,20 @@ banking-ml-project/
 - **Evaluation**: RMSE, Cross-validation
 - **File**: `src/models/ml_models.py:20-122`
 
-### **2. Product Recommendation**
+### **2. Product Recommendation** 🆕 **Enhanced with Product Names**
 - **Algorithm**: Collaborative Filtering (SVD + KNN)
-- **Features**: User-item interaction matrix
-- **Target**: Product recommendations with scores
+- **Features**: User-item interaction matrix with product names
+- **Target**: Product recommendations with real names
 - **Evaluation**: Top-N accuracy, Cold start handling
-- **File**: `src/models/ml_models.py:124-255`
+- **Enhancement**: 673 product name mappings integrated
+- **File**: `src/models/ml_models.py:124-267`
 
 ### **3. Churn Prediction**
 - **Algorithm**: XGBoost Classifier
 - **Features**: Demographics, product usage, account activity
 - **Target**: Churn probability (0-1)
 - **Evaluation**: AUC-ROC, Precision/Recall
-- **File**: `src/models/ml_models.py:257-391`
+- **File**: `src/models/ml_models.py:270-392`
 
 ## 🚀 **Quick Start**
 
@@ -129,7 +133,7 @@ POST /api/v1/predict/agency-performance
 }
 ```
 
-### **Product Recommendations**
+### **Product Recommendations** 🆕 **Enhanced with Real Product Names**
 ```bash
 # Get recommendations for client
 GET /api/v1/recommend/products/12345?n_recommendations=5
@@ -141,8 +145,16 @@ Response:
         {
             "product_id": "201",
             "score": 0.85,
-            "product_name": "Savings Account Premium",
-            "category": "Savings"
+            "product_name": "Compte Epargne Special",
+            "category": "Category_200",
+            "description": "Compte Epargne Special"
+        },
+        {
+            "product_id": "653",
+            "score": 0.72,
+            "product_name": "VISA ELECTRON NATIONALE",
+            "category": "Category_650",
+            "description": "VISA ELECTRON NATIONALE"
         }
     ]
 }
@@ -197,11 +209,13 @@ GET /api/v1/analytics/summary
 - **Cross-validation**: 5-fold CV for model validation
 - **Feature Importance**: Available in training logs
 
-### **Product Recommender**
+### **Product Recommender** 🆕 **Enhanced**
 - **Cold Start**: Handles new users with popularity-based fallback
 - **Collaborative Filtering**: SVD with 30 components
-- **Coverage**: Recommends from 10+ product categories
+- **Product Names**: 673 real product name mappings
+- **Coverage**: Recommends from 35+ product categories
 - **Response Time**: < 200ms per recommendation
+- **Enhancement**: Real French product names instead of codes
 
 ### **Churn Predictor**
 - **AUC Score**: > 0.80 (excellent discrimination)
@@ -211,30 +225,39 @@ GET /api/v1/analytics/summary
 
 ## 🔧 **Features**
 
-### **Data Processing**
+### **Data Processing** 🆕 **Enhanced**
 - ✅ **Excel File Processing**: Handles all original data formats
 - ✅ **Feature Engineering**: Creates 20+ derived features
 - ✅ **Data Cleaning**: Handles missing values, outliers
 - ✅ **Scalable Pipeline**: Processes 60K+ product records
+- 🆕 **Product Name Mapping**: 673 product code → name mappings
+- 🆕 **Pack Name Mapping**: 17 pack code → name mappings
+- 🆕 **Reference Data Integration**: Automatic merging of product names
 
-### **Machine Learning**
+### **Machine Learning** 🆕 **Enhanced**
 - ✅ **Real Models**: No mock data - trained on actual bank data
 - ✅ **Model Persistence**: All models saved/loaded automatically
 - ✅ **Feature Importance**: Explains model predictions
 - ✅ **Cross-validation**: Robust model evaluation
+- 🆕 **Product Name Integration**: Models trained with enhanced product data
+- 🆕 **Interpretable Results**: ML outputs include real product names
 
-### **API System**
+### **API System** 🆕 **Enhanced**
 - ✅ **FastAPI**: Modern, async API framework
 - ✅ **Auto Documentation**: Swagger UI at /docs
 - ✅ **CORS Support**: Frontend integration ready
 - ✅ **Error Handling**: Comprehensive error responses
 - ✅ **Logging**: Full request/response logging
+- 🆕 **Product Name Integration**: API responses include real product names
+- 🆕 **Smart Fallback**: Multiple layers of product name mapping
 
-### **Dashboard**
+### **Dashboard** 🆕 **Enhanced**
 - ✅ **Interactive UI**: Dash-based web interface
 - ✅ **Real-time Predictions**: Live ML model integration
 - ✅ **Data Visualization**: Charts and metrics
 - ✅ **Responsive Design**: Works on mobile devices
+- 🆕 **Product Name Display**: Shows real product names in recommendations
+- 🆕 **Business-Friendly**: Meaningful product information for users
 
 ## 🎯 **Business Impact**
 
@@ -243,15 +266,52 @@ GET /api/v1/analytics/summary
 - **Agency Ranking**: Compare agency performance metrics
 - **Resource Allocation**: Optimize manager assignments
 
-### **Revenue Growth**
-- **Cross-selling**: Recommend next-best products
+### **Revenue Growth** 🆕 **Enhanced**
+- **Cross-selling**: Recommend next-best products with real names
 - **Customer Retention**: Predict and prevent churn
 - **Target Marketing**: Focus on high-value clients
+- **Product Insights**: Understand customer preferences by product names
+- **Business Intelligence**: Meaningful product analytics
 
 ### **Risk Management**
 - **Churn Prevention**: Early warning system
 - **Performance Monitoring**: Real-time alerts
 - **Predictive Analytics**: Proactive interventions
+
+## 🆕 **Product Name Enhancement**
+
+### **Enhanced Data Pipeline**
+Your banking ML system now includes comprehensive product name mapping that transforms numeric codes into meaningful business terms.
+
+#### **What's Enhanced:**
+- **673 Product Mappings**: Complete product code → name mapping
+- **17 Pack Mappings**: Pack code → name mapping  
+- **35 Product Categories**: Business categorization
+- **French Product Names**: Real banking product names
+- **Automatic Integration**: Seamless data processing pipeline
+
+#### **Product Examples:**
+| Code | Product Name | Category | Description |
+|------|-------------|----------|-------------|
+| 201 | Compte Epargne Special | Savings | Savings account |
+| 210 | EBANKING MIXTE PART | Digital | E-banking service |
+| 221 | Compte Courant en TND | Current | Current account |
+| 653 | VISA ELECTRON NATIONALE | Cards | National Visa card |
+| 665 | CARTE WAFFER | Cards | Waffer card |
+
+#### **Business Benefits:**
+- **Interpretable Results**: ML recommendations with real product names
+- **Stakeholder Communication**: Present results in business terms
+- **Customer Insights**: Understand product preferences
+- **Market Analysis**: Analyze product performance by name
+- **Strategic Planning**: Make data-driven product decisions
+
+#### **Technical Implementation:**
+- **Data Processing**: Automatic merging of reference data
+- **Model Training**: Enhanced product data integration
+- **API Responses**: Real product names in all endpoints
+- **Dashboard**: User-friendly product displays
+- **Backward Compatibility**: Maintains existing functionality
 
 ## 📈 **Model Benchmarking Guidelines**
 
@@ -541,5 +601,22 @@ For technical issues or questions:
 
 ---
 
-**🎉 This banking ML system is production-ready with real trained models, comprehensive APIs, and interactive dashboards!**
+## 🆕 **Latest Updates**
+
+### **Product Name Integration Complete**
+- ✅ **673 Product Mappings**: Complete product code → name mapping
+- ✅ **Enhanced Data Pipeline**: Automatic product name merging
+- ✅ **ML Model Integration**: Models trained with product names
+- ✅ **API Enhancement**: Real product names in all responses
+- ✅ **Business-Ready**: Interpretable results with meaningful names
+
+### **Quick Verification**
+```bash
+# Test enhanced API
+curl -X GET "http://localhost:8001/api/v1/recommend/products/43568402"
+
+# Expected: Product names like "Compte Epargne Special", "VISA ELECTRON NATIONALE"
+```
+
+**🎉 This banking ML system is production-ready with real trained models, comprehensive APIs, interactive dashboards, and meaningful product name integration!**
 

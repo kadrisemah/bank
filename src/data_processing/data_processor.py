@@ -72,8 +72,33 @@ class BankingDataProcessor:
         
         return df
     
+    def load_product_references(self) -> Dict[str, pd.DataFrame]:
+        """Load product and pack reference data"""
+        logger.info("Loading product reference data...")
+        
+        references = {}
+        
+        try:
+            # Load product reference
+            product_ref_path = os.path.join(self.data_path, 'referenciel_produits.xlsx')
+            references['products'] = pd.read_excel(product_ref_path)
+            logger.info(f"Loaded product reference: {references['products'].shape}")
+            
+            # Load pack reference
+            pack_ref_path = os.path.join(self.data_path, 'referenciel_packs.xlsx')
+            references['packs'] = pd.read_excel(pack_ref_path)
+            logger.info(f"Loaded pack reference: {references['packs'].shape}")
+            
+        except Exception as e:
+            logger.error(f"Error loading reference data: {str(e)}")
+            # Create empty reference dataframes if files don't exist
+            references['products'] = pd.DataFrame(columns=['CPRO', 'LIB', 'ATT', 'CGAM'])
+            references['packs'] = pd.DataFrame(columns=['CPACK', 'LIB'])
+            
+        return references
+    
     def clean_products_data(self) -> pd.DataFrame:
-        """Clean and process products data"""
+        """Clean and process products data with reference name mapping"""
         df = self.data['produits'].copy()
         
         # Convert dates
@@ -88,6 +113,67 @@ class BankingDataProcessor:
         # Create product status
         df['is_active'] = df['ETA'] == 'VA'
         
+        # Load reference data
+        references = self.load_product_references()
+        
+        # Merge product names
+        if not references['products'].empty:
+            # Ensure CPRO is consistent type
+            df['CPRO'] = pd.to_numeric(df['CPRO'], errors='coerce')
+            references['products']['CPRO'] = pd.to_numeric(references['products']['CPRO'], errors='coerce')
+            
+            # Merge product information
+            df = df.merge(
+                references['products'][['CPRO', 'LIB', 'ATT', 'CGAM']],
+                on='CPRO',
+                how='left',
+                suffixes=('', '_product')
+            )
+            
+            # Rename columns for clarity
+            df.rename(columns={
+                'LIB': 'product_name',
+                'ATT': 'product_attribute',
+                'CGAM': 'product_category'
+            }, inplace=True)
+            
+            logger.info(f"Merged product names: {df['product_name'].notna().sum()}/{len(df)} products")
+        
+        # Merge pack names
+        if not references['packs'].empty:
+            # Clean and convert CPACK
+            df['CPACK'] = df['CPACK'].astype(str).str.strip()
+            df['CPACK_numeric'] = pd.to_numeric(df['CPACK'], errors='coerce')
+            
+            references['packs']['CPACK'] = pd.to_numeric(references['packs']['CPACK'], errors='coerce')
+            
+            # Merge pack information
+            df = df.merge(
+                references['packs'][['CPACK', 'LIB']],
+                left_on='CPACK_numeric',
+                right_on='CPACK',
+                how='left',
+                suffixes=('', '_pack')
+            )
+            
+            # Rename and clean up
+            df.rename(columns={'LIB': 'pack_name'}, inplace=True)
+            df.drop(columns=['CPACK_pack', 'CPACK_numeric'], inplace=True)
+            
+            logger.info(f"Merged pack names: {df['pack_name'].notna().sum()}/{len(df)} packs")
+        
+        # Fill missing product/pack names with codes
+        if 'product_name' in df.columns:
+            df['product_name'] = df['product_name'].fillna(f"Product_{df['CPRO']}")
+        else:
+            df['product_name'] = f"Product_{df['CPRO']}"
+            
+        if 'pack_name' in df.columns:
+            df['pack_name'] = df['pack_name'].fillna(f"Pack_{df['CPACK']}")
+        else:
+            df['pack_name'] = f"Pack_{df['CPACK']}"
+        
+        logger.info("Products data cleaned with reference mapping")
         return df
     
     def clean_accounts_data(self) -> pd.DataFrame:
@@ -274,19 +360,32 @@ class BankingDataProcessor:
         manager_features = self.create_manager_features()
         agency_features = self.create_agency_features()
         
+        # Process and save enhanced products data
+        products_cleaned = self.clean_products_data()
+        
         # Save processed data
         os.makedirs(output_path, exist_ok=True)
         
         client_features.to_csv(os.path.join(output_path, 'client_features.csv'), index=False)
         manager_features.to_csv(os.path.join(output_path, 'manager_features.csv'), index=False)
         agency_features.to_csv(os.path.join(output_path, 'agency_features.csv'), index=False)
+        products_cleaned.to_csv(os.path.join(output_path, 'products_cleaned.csv'), index=False)
+        
+        # Save reference mappings for API use
+        references = self.load_product_references()
+        if not references['products'].empty:
+            references['products'].to_csv(os.path.join(output_path, 'product_reference.csv'), index=False)
+        if not references['packs'].empty:
+            references['packs'].to_csv(os.path.join(output_path, 'pack_reference.csv'), index=False)
         
         logger.info(f"Saved processed data to {output_path}")
+        logger.info(f"Products file now includes: product_name, pack_name, product_category")
         
         return {
             'client_features': client_features,
             'manager_features': manager_features,
-            'agency_features': agency_features
+            'agency_features': agency_features,
+            'products_cleaned': products_cleaned
         }
 
 # Usage example
