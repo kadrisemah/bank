@@ -14,8 +14,9 @@ from multiprocessing import Process
 def start_api():
     """Start the FastAPI backend"""
     print("🚀 Starting API server...")
-    os.chdir('/mnt/c/Users/Semah Kadri/Desktop/new/banking-ml-project')
-    sys.path.append('/mnt/c/Users/Semah Kadri/Desktop/new/banking-ml-project/src')
+    project_dir = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(project_dir)
+    sys.path.append(os.path.join(project_dir, 'src'))
     
     from src.api.app import app
     import uvicorn
@@ -25,8 +26,9 @@ def start_api():
 def start_dashboard():
     """Start the Dash dashboard"""
     print("🎨 Starting Dashboard...")
-    os.chdir('/mnt/c/Users/Semah Kadri/Desktop/new/banking-ml-project')
-    sys.path.append('/mnt/c/Users/Semah Kadri/Desktop/new/banking-ml-project/src')
+    project_dir = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(project_dir)
+    sys.path.append(os.path.join(project_dir, 'src'))
     
     from src.dashboard.app import app
     
