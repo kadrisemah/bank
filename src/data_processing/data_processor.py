@@ -346,6 +346,9 @@ class BankingDataProcessor:
             0
         )
         
+        # Filter out administrative units (agencies with 0 clients)
+        agency_features = agency_features[agency_features['total_clients'] > 0]
+        
         return agency_features
     
     def process_and_save_all(self, output_path: str):

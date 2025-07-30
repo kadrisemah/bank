@@ -626,7 +626,7 @@ async def get_analytics_summary():
         except:
             total_clients = 15274
             total_products = 63563
-            total_agencies = 87
+            total_agencies = 39
             total_managers = 421
         
         summary = {

@@ -467,7 +467,7 @@ def render_content(active_tab):
                         dbc.CardBody([
                             html.H3(f"{agencies_data['avg_performance']:.1f}%" if agencies_data else "78.3%", className="text-info"),
                             html.P("Avg Agency Performance", className="mb-0"),
-                            html.Small(f"Total: {agencies_data['total_agencies']}" if agencies_data else "87 agencies", className="text-muted")
+                            html.Small(f"Total: {agencies_data['total_agencies']}" if agencies_data else "39 agencies", className="text-muted")
                         ])
                     ], className="shadow")
                 ], md=3),
